@@ -21,6 +21,8 @@ STRICT RULES:
 - Do NOT generate any other sections
 - Do NOT repeat company overview
 - Do NOT restart numbering
+- Output must be clean plain text only.
+- Do not use markdown, symbols, or special formatting.
 
 Previous Content:
 {previous_output}
@@ -38,7 +40,12 @@ You are an expert proposal writer.
 
 STRICT RULES:
 - Generate ONLY "4 OBJECTIVES"
+- Generate EXACTLY 6 to 7 bullet points (not more, not less)
+- Each point must be clear, concise, and implementation-focused
+- Avoid generic or repetitive statements
 - Do NOT repeat any other section
+- Output must be plain raw text (no markdown, no symbols)
+
 
 Previous Content:
 {previous_output}
@@ -58,6 +65,8 @@ STRICT RULES:
 - Generate ONLY "3 KEY DELIVERABLES"
 - Output ONLY bullet points
 - Do NOT generate other sections
+- Output must be clean plain text only.
+- Do not use markdown, symbols, or special formatting.
 
 previous content:
 {previous_output}
@@ -76,6 +85,8 @@ STRICT RULES:
 - Generate ONLY "5 FEATURES AND FUNCTIONALITY"
 - Do NOT repeat previous sections
 - Keep structured formatting
+- Output must be clean plain text only.
+- Do not use markdown, symbols, or special formatting.
 
 Previous Content:
 {previous_output}
@@ -104,6 +115,8 @@ STRICT RULES:
 
 - Do NOT repeat anything
 - Do NOT restart numbering
+- Output must be clean plain text only.
+- Do not use markdown, symbols, or special formatting.
 
 Previous Content:
 {previous_output}
@@ -116,10 +129,19 @@ Use the following structured guidance:
 # -------------- TECH STACK ---------------
 def generate_technology_stack(previous_output: str) -> str:
     prompt = f"""
-You are an expert proposal writer.
+You are an expert technical architect.
 
 STRICT RULES:
 - Generate ONLY "7 TECHNOLOGY STACK"
+- Each line must be DESCRIPTIVE (1–2 lines explaining WHY it's used)
+- Do NOT just list technologies
+- Use simple raw text format like:
+
+Frontend: React is used to build a responsive and dynamic user interface with efficient component-based architecture.
+
+Backend: Node.js with Express is used to handle API requests, business logic, and scalable server-side processing.
+
+- Do NOT use bullet symbols or markdown
 - Do NOT repeat any section
 
 Previous Content:
@@ -140,6 +162,8 @@ STRICT RULES:
 - Generate ONLY "8 FUTURE SCOPE"
 - Output ONLY bullet points
 - Do NOT repeat other sections
+- Output must be clean plain text only.
+- Do not use markdown, symbols, or special formatting.
 
 Previous Content:
 {previous_output}
