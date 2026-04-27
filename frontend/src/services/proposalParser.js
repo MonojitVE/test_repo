@@ -1,60 +1,12 @@
 /**
  * proposalParser.js
  *
- * Converts the backend proposal text (which contains embedded JSON blocks
- * mixed with plain text) into clean plain text suitable for the PDF generator.
+ * Parses the backend proposal_text (mixed plain text + embedded JSON blocks)
+ * into structured sections for rendering as HTML, and clean plain text for PDF.
  */
 
-/**
- * Recursively flatten a JSON object/array into bullet lines.
- * Skips keys that are just container labels, extracts all string leaf values.
- */
-function flattenJson(value, depth = 0) {
-  const lines = [];
-
-  if (typeof value === "string") {
-    // Plain string — return as a bullet or body line
-    const trimmed = value.trim();
-    if (trimmed) lines.push(depth === 0 ? trimmed : `- ${trimmed}`);
-  } else if (Array.isArray(value)) {
-    value.forEach((item) => {
-      flattenJson(item, depth + 1).forEach((l) => lines.push(l));
-    });
-  } else if (typeof value === "object" && value !== null) {
-    Object.entries(value).forEach(([key, val]) => {
-      const label = key
-        .replace(/_/g, " ")
-        .replace(/\b\w/g, (c) => c.toUpperCase());
-
-      if (typeof val === "string") {
-        // Key: value — emit as subheading + body
-        lines.push(`${label}:`);
-        val
-          .trim()
-          .split(/\n+/)
-          .forEach((line) => {
-            if (line.trim()) lines.push(line.trim());
-          });
-      } else if (Array.isArray(val)) {
-        lines.push(`${label}:`);
-        val.forEach((item) => {
-          if (typeof item === "string") lines.push(`- ${item.trim()}`);
-          else flattenJson(item, depth + 1).forEach((l) => lines.push(l));
-        });
-      } else if (typeof val === "object" && val !== null) {
-        lines.push(`${label}:`);
-        flattenJson(val, depth + 1).forEach((l) => lines.push(l));
-      }
-    });
-  }
-
-  return lines;
-}
-
-/**
- * Try to parse a string as JSON. Returns parsed object or null.
- */
-function tryParseJson(str) {
+// ── Try parse JSON safely ─────────────────────────────────────────────────────
+function tryJson(str) {
   try {
     return JSON.parse(str);
   } catch {
@@ -62,20 +14,14 @@ function tryParseJson(str) {
   }
 }
 
-/**
- * Given a block of text that may contain one or more JSON objects,
- * replace each JSON block with its flattened plain-text equivalent.
- */
-function replaceJsonBlocks(text) {
-  // Match top-level JSON objects: { ... } — handles nested braces
-  const result = [];
+// ── Extract all top-level { } JSON blocks from a string ───────────────────────
+function extractJsonBlocks(text) {
+  const blocks = [];
   let i = 0;
-
   while (i < text.length) {
     if (text[i] === "{") {
-      // Try to find matching closing brace
-      let depth = 0;
-      let j = i;
+      let depth = 0,
+        j = i;
       while (j < text.length) {
         if (text[j] === "{") depth++;
         else if (text[j] === "}") {
@@ -84,41 +30,201 @@ function replaceJsonBlocks(text) {
         }
         j++;
       }
-      const jsonCandidate = text.slice(i, j + 1);
-      const parsed = tryParseJson(jsonCandidate);
+      const candidate = text.slice(i, j + 1);
+      const parsed = tryJson(candidate);
       if (parsed) {
-        // Replace JSON block with flattened text
-        const flat = flattenJson(parsed);
-        result.push(flat.join("\n"));
+        blocks.push({ start: i, end: j + 1, parsed });
         i = j + 1;
-      } else {
-        result.push(text[i]);
-        i++;
+        continue;
+      }
+    }
+    i++;
+  }
+  return blocks;
+}
+
+// ── Split text into alternating text/json segments ────────────────────────────
+function splitSegments(text) {
+  const blocks = extractJsonBlocks(text);
+  const segments = [];
+  let cursor = 0;
+
+  for (const block of blocks) {
+    if (cursor < block.start) {
+      segments.push({ type: "text", content: text.slice(cursor, block.start) });
+    }
+    segments.push({ type: "json", parsed: block.parsed });
+    cursor = block.end;
+  }
+  if (cursor < text.length) {
+    segments.push({ type: "text", content: text.slice(cursor) });
+  }
+  return segments;
+}
+
+// ── Convert any JSON value into typed content items ───────────────────────────
+function jsonToItems(value, depth = 0) {
+  const items = [];
+
+  if (typeof value === "string") {
+    const t = value.trim();
+    if (t) items.push({ type: depth === 0 ? "body" : "bullet", text: t });
+  } else if (Array.isArray(value)) {
+    value.forEach((v) =>
+      jsonToItems(v, depth + 1).forEach((i) => items.push(i)),
+    );
+  } else if (typeof value === "object" && value !== null) {
+    // Unwrap single-key wrapper e.g. { "purpose_of_document": [...] }
+    const keys = Object.keys(value);
+
+    // Special: if only key and value is string/array, unwrap
+    if (keys.length === 1) {
+      const inner = value[keys[0]];
+      if (typeof inner === "string") {
+        items.push({ type: "body", text: inner.trim() });
+        return items;
+      }
+      if (Array.isArray(inner)) {
+        inner.forEach((v) =>
+          jsonToItems(v, depth).forEach((i) => items.push(i)),
+        );
+        return items;
+      }
+    }
+
+    keys.forEach((key) => {
+      const val = value[key];
+      const label = key
+        .replace(/_or_/gi, " / ")
+        .replace(/_/g, " ")
+        .replace(/\b\w/g, (c) => c.toUpperCase());
+
+      if (
+        key === "overall_intro" ||
+        key === "overall_strategy" ||
+        key === "requirement_analysis"
+      ) {
+        // Treat as body paragraph, no subsection label
+        if (typeof val === "string")
+          items.push({ type: "body", text: val.trim() });
+        return;
+      }
+
+      if (typeof val === "string") {
+        items.push({ type: "subsection", text: label });
+        items.push({ type: "body", text: val.trim() });
+      } else if (Array.isArray(val)) {
+        // Check if it's an array of strings → bullets
+        const allStrings = val.every((v) => typeof v === "string");
+        if (allStrings) {
+          items.push({ type: "subsection", text: label });
+          val.forEach((s) => items.push({ type: "bullet", text: s.trim() }));
+        } else {
+          // Array of objects
+          items.push({ type: "subsection", text: label });
+          val.forEach((v) =>
+            jsonToItems(v, depth + 1).forEach((i) => items.push(i)),
+          );
+        }
+      } else if (typeof val === "object" && val !== null) {
+        // Nested object — check for sub_features pattern
+        if (val.sub_features && Array.isArray(val.sub_features)) {
+          items.push({ type: "subsection", text: label });
+          val.sub_features.forEach((s) =>
+            items.push({ type: "bullet", text: String(s).trim() }),
+          );
+        } else {
+          items.push({ type: "subsection", text: label });
+          jsonToItems(val, depth + 1).forEach((i) => items.push(i));
+        }
+      }
+    });
+  }
+
+  return items;
+}
+
+// ── Section heading regex ─────────────────────────────────────────────────────
+const H1_RE = /^(\d+)\s+([A-Z][A-Z\s&/,]+)$/;
+
+// ── Main parser ───────────────────────────────────────────────────────────────
+/**
+ * @param {string} rawText
+ * @returns {{ sections: Array, plainText: string }}
+ */
+export function parseProposal(rawText) {
+  if (!rawText) return { sections: [], plainText: "" };
+
+  const segments = splitSegments(rawText);
+  const sections = [];
+  const plainLines = [];
+  let current = null;
+
+  function ensureSection(num, title) {
+    if (current) sections.push(current);
+    current = { num, title, items: [] };
+  }
+
+  function addItem(item) {
+    if (!current) ensureSection("", "");
+    current.items.push(item);
+  }
+
+  for (const seg of segments) {
+    if (seg.type === "text") {
+      const lines = seg.content.split("\n");
+      for (const raw of lines) {
+        const t = raw.trim();
+        if (!t) {
+          addItem({ type: "spacer" });
+          continue;
+        }
+
+        const h1 = t.match(H1_RE);
+        if (h1) {
+          ensureSection(h1[1], h1[2]);
+          plainLines.push(`\n${t}`);
+          continue;
+        }
+        if (/^[-•*]\s+/.test(t)) {
+          const text = t.replace(/^[-•*]\s+/, "");
+          addItem({ type: "bullet", text });
+          plainLines.push(`- ${text}`);
+          continue;
+        }
+        addItem({ type: "body", text: t });
+        plainLines.push(t);
       }
     } else {
-      result.push(text[i]);
-      i++;
+      // JSON segment
+      const items = jsonToItems(seg.parsed);
+      items.forEach((item) => {
+        addItem(item);
+        if (item.type === "subsection") plainLines.push(`\n${item.text}:`);
+        else if (item.type === "bullet") plainLines.push(`- ${item.text}`);
+        else if (item.type === "body") plainLines.push(item.text);
+      });
     }
   }
 
-  return result.join("");
+  if (current) sections.push(current);
+
+  // Remove empty spacer-only sections
+  const filtered = sections.filter(
+    (s) => s.title || s.items.some((i) => i.type !== "spacer"),
+  );
+
+  const plainText = plainLines
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+
+  return { sections: filtered, plainText };
 }
 
 /**
- * Main export — cleans the full proposal text.
- * Call this before passing proposalText to generateProposalPdf or ProposalViewer.
+ * Returns only the plain text version (for PDF generator + copy).
  */
 export function parseProposalText(rawText) {
-  if (!rawText) return "";
-
-  // Step 1: Replace all embedded JSON blocks with flattened plain text
-  let cleaned = replaceJsonBlocks(rawText);
-
-  // Step 2: Normalise excessive blank lines (max 2 in a row)
-  cleaned = cleaned.replace(/\n{3,}/g, "\n\n");
-
-  // Step 3: Ensure bullet lines start with "- " consistently
-  cleaned = cleaned.replace(/^[•*]\s+/gm, "- ");
-
-  return cleaned.trim();
+  return parseProposal(rawText).plainText;
 }

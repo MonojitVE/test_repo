@@ -6,6 +6,7 @@ import ProposalViewer from "../components/proposal/ProposalViewer";
 import Button from "../components/ui/Button";
 import { triggerDownload } from "../services/api";
 import { generateProposalPdf } from "../services/pdfGenerator";
+import { parseProposalText } from "../services/proposalParser";
 import "./ProposalPage.css";
 
 export default function ProposalPage() {
@@ -33,8 +34,11 @@ export default function ProposalPage() {
     setPdfLoading(true);
     setPdfError("");
     try {
-      const blob = await generateProposalPdf(proposalText, {
-        projectTitle: formData?.project_name || "Project Proposal", // ← from form field
+      // Convert raw JSON/text mix → clean plain text for PDF
+      const cleanText = parseProposalText(proposalText);
+
+      const blob = await generateProposalPdf(cleanText, {
+        projectTitle: formData?.project_name || "Project Proposal",
         preparedBy: "Virtual Employee",
         clientName: clientName || "",
         date: new Date().toLocaleDateString("en-GB", {
@@ -56,13 +60,14 @@ export default function ProposalPage() {
   }, [proposalText, clientName, formData]);
 
   const handleCopy = useCallback(async () => {
+    const cleanText = parseProposalText(proposalText);
     try {
-      await navigator.clipboard.writeText(proposalText);
+      await navigator.clipboard.writeText(cleanText);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
       const ta = document.createElement("textarea");
-      ta.value = proposalText;
+      ta.value = cleanText;
       document.body.appendChild(ta);
       ta.select();
       document.execCommand("copy");
@@ -186,6 +191,7 @@ export default function ProposalPage() {
               </div>
             ) : (
               <div className="proposal-page__viewer">
+                {/* ProposalViewer handles JSON parsing internally */}
                 <ProposalViewer text={proposalText} />
               </div>
             )}

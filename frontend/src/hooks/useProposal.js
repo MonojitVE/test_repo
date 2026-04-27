@@ -1,6 +1,5 @@
 import { useState, useCallback } from "react";
 import { generateProposal } from "../services/api";
-import { parseProposalText } from "../services/proposalParser";
 
 const INITIAL_FORM = {
   project_name: "",
@@ -70,15 +69,13 @@ export function useProposal() {
     }, 3200);
 
     try {
+      // Store raw text — ProposalViewer parses JSON internally
+      // ProposalPage uses parseProposalText() for PDF generation
       const rawText = await generateProposal(form);
-
-      // ── Parse out any embedded JSON blocks into clean plain text ──────────
-      const cleanText = parseProposalText(rawText);
-
       clearInterval(interval);
       setStepIndex(totalSteps - 1);
       await new Promise((r) => setTimeout(r, 600));
-      setProposalText(cleanText);
+      setProposalText(rawText);
       setStatus("done");
     } catch (e) {
       clearInterval(interval);
