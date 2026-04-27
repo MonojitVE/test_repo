@@ -24,6 +24,89 @@ function sd(doc, hex) { const [r,g,b] = hexRgb(hex); doc.setDrawColor(r,g,b); }
 function tw(doc, text) { return (doc.getStringUnitWidth(text) * doc.getFontSize()) / doc.internal.scaleFactor; }
 function wrap(doc, text, maxW, size) { doc.setFontSize(size); return doc.splitTextToSize(text, maxW); }
 
+// ── NEW: Sanitize text for jsPDF WinAnsi encoding ─────────────────────────────
+// jsPDF's built-in helvetica uses WinAnsi encoding. Characters outside that
+// range (curly quotes, em-dashes, special Unicode) get corrupted into garbage
+// like "&F&r&o&n&t&". This function replaces them with safe ASCII equivalents.
+function sanitize(text) {
+  if (!text) return "";
+  return text
+    .replace(/[\u2018\u2019]/g, "'")   // curly single quotes → '
+    .replace(/[\u201C\u201D]/g, '"')   // curly double quotes → "
+    .replace(/\u2013/g, "-")           // en-dash → -
+    .replace(/\u2014/g, "--")          // em-dash → --
+    .replace(/\u2026/g, "...")         // ellipsis → ...
+    .replace(/\u00A0/g, " ")           // non-breaking space → space
+    .replace(/[^\x00-\xFF]/g, "");     // strip anything outside latin-1
+}
+
+// ── NEW: Extract all top-level JSON blocks and flatten to readable text ────────
+function tryJson(str) {
+  try { return JSON.parse(str); } catch { return null; }
+}
+
+function flattenJson(value, depth = 0) {
+  const lines = [];
+  if (typeof value === "string") {
+    const t = value.trim();
+    if (t) lines.push((depth > 0 ? "- " : "") + t);
+  } else if (Array.isArray(value)) {
+    value.forEach(v => flattenJson(v, depth + 1).forEach(l => lines.push(l)));
+  } else if (typeof value === "object" && value !== null) {
+    Object.entries(value).forEach(([key, val]) => {
+      // Skip wrapper keys that are just single-value unwrappers
+      const label = key
+        .replace(/_or_/gi, " / ")
+        .replace(/_/g, " ")
+        .replace(/\b\w/g, c => c.toUpperCase());
+
+      if (typeof val === "string") {
+        if (!["overall_intro","overall_strategy","requirement_analysis"].includes(key)) {
+          lines.push(label + ":");
+        }
+        if (val.trim()) lines.push(val.trim());
+      } else if (Array.isArray(val)) {
+        lines.push(label + ":");
+        val.forEach(v => flattenJson(v, depth + 1).forEach(l => lines.push(l)));
+      } else if (typeof val === "object" && val !== null) {
+        lines.push(label + ":");
+        flattenJson(val, depth + 1).forEach(l => lines.push(l));
+      } else {
+        lines.push(String(val ?? "").trim());
+      }
+    });
+  }
+  return lines;
+}
+
+// ── NEW: Strip JSON blocks from raw proposal text, replacing with flat text ───
+function stripJsonBlocks(text) {
+  const out = [];
+  let i = 0;
+  while (i < text.length) {
+    if (text[i] === "{") {
+      let depth = 0, j = i;
+      while (j < text.length) {
+        if (text[j] === "{") depth++;
+        else if (text[j] === "}") { depth--; if (depth === 0) break; }
+        j++;
+      }
+      const candidate = text.slice(i, j + 1);
+      const parsed = tryJson(candidate);
+      if (parsed) {
+        // Replace JSON block with flat readable lines
+        const flat = flattenJson(parsed);
+        out.push(flat.join("\n"));
+        i = j + 1;
+        continue;
+      }
+    }
+    out.push(text[i]);
+    i++;
+  }
+  return out.join("");
+}
+
 function drawHeader(doc) {
   doc.setFontSize(9);
   doc.setFont("helvetica", "bold");
@@ -59,7 +142,7 @@ function drawCover(doc, { projectTitle, preparedBy, date }) {
     doc.setFontSize(16);
     doc.setFont("helvetica", "bold");
     sc(doc, ORANGE);
-    const titleLines = wrap(doc, projectTitle.trim(), CW - 10, 16);
+    const titleLines = wrap(doc, sanitize(projectTitle.trim()), CW - 10, 16);
     titleLines.forEach((line) => {
       doc.text(line, (PAGE_W - tw(doc, line)) / 2, ty);
       ty += 9;
@@ -75,7 +158,7 @@ function drawCover(doc, { projectTitle, preparedBy, date }) {
   sc(doc, DARK);
   doc.text("Prepared By:", ML + 18, infoY);
   sc(doc, BLUE);
-  doc.text(preparedBy || "Virtual Employee Pvt. Ltd.", ML + 55, infoY);
+  doc.text(sanitize(preparedBy || "Virtual Employee Pvt. Ltd."), ML + 55, infoY);
   sc(doc, DARK);
   doc.text("Date:", ML + 18, infoY + 10);
   sc(doc, BLUE);
@@ -96,10 +179,10 @@ function parseLines(text) {
   return text.split("\n").map((raw) => {
     const t = raw.trim();
     if (!t) return { kind: "empty" };
-    if (H1_RE.test(t)) { const [,num,title] = t.match(H1_RE); return { kind: "h1", num, title }; }
-    if (BULLET_RE.test(t)) return { kind: "bullet", text: t.replace(/^[-•*]\s+/, "") };
-    if (SUBHEAD_RE.test(t)) return { kind: "sub", text: t };
-    return { kind: "body", text: t };
+    if (H1_RE.test(t)) { const [,num,title] = t.match(H1_RE); return { kind: "h1", num, title: sanitize(title) }; }
+    if (BULLET_RE.test(t)) return { kind: "bullet", text: sanitize(t.replace(/^[-•*]\s+/, "")) };
+    if (SUBHEAD_RE.test(t)) return { kind: "sub", text: sanitize(t) };
+    return { kind: "body", text: sanitize(t) };
   });
 }
 
@@ -117,7 +200,7 @@ function drawTOC(doc, sections) {
     doc.setFont("helvetica", isMajor ? "bold" : "normal");
     sc(doc, DARK);
     const label = num ? `${num}  ${title}` : title;
-    const wrapped = doc.splitTextToSize(label, CW - indent - 12);
+    const wrapped = doc.splitTextToSize(sanitize(label), CW - indent - 12);
     if (y + wrapped.length * 5.2 > PAGE_H - 18) { doc.addPage(); drawHeader(doc); y = 28; }
     wrapped.forEach((line, li) => doc.text(line, ML + indent, y + li * 5.2));
     doc.text(String(page), PAGE_W - MR, y, { align: "right" });
@@ -132,11 +215,17 @@ export async function generateProposalPdf(
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   doc.setFont("helvetica");
 
-  const cleaned = proposalText.replace(
+  // ── STEP 1: Strip JSON blocks → replace with flat readable text ──────────
+  const jsonStripped = stripJsonBlocks(proposalText);
+
+  // ── STEP 2: Remove any stray CONTENTS section ────────────────────────────
+  const cleaned = jsonStripped.replace(
     /(\n|^)(CONTENTS|\d+\s+CONTENTS)[^\n]*\n([\s\S]*?)(?=(\n|^)\d+\s+[A-Z][A-Z])/gm, "\n"
   );
 
+  // ── STEP 3: Parse lines (sanitize happens inside parseLines) ─────────────
   const parsed = parseLines(cleaned);
+
   const PAGE_BOTTOM = PAGE_H - 18;
   let simPage = 3, simY = 26;
   const tocEntries = [];
@@ -201,9 +290,9 @@ export async function generateProposalPdf(
   for (let p = 2; p <= total; p++) {
     doc.setPage(p);
     doc.setFontSize(8); doc.setFont("helvetica", "normal"); sc(doc, MID);
-    if (clientName) doc.text(`Prepared for: ${clientName}`, ML, PAGE_H - 8);
+    if (clientName) doc.text(sanitize(`Prepared for: ${clientName}`), ML, PAGE_H - 8);
     if (p >= 3) doc.text(String(p - 2), PAGE_W / 2, PAGE_H - 8, { align: "center" });
-    if (preparedBy) doc.text(preparedBy, PAGE_W - MR, PAGE_H - 8, { align: "right" });
+    if (preparedBy) doc.text(sanitize(preparedBy), PAGE_W - MR, PAGE_H - 8, { align: "right" });
   }
 
   return doc.output("blob");
