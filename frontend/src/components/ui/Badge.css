@@ -1,0 +1,15 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+.badge--default  { background: var(--surface-2); color: var(--ink-soft); }
+.badge--blue     { background: var(--accent-light); color: var(--accent); }
+.badge--gold     { background: var(--gold-light); color: var(--gold); }
+.badge--success  { background: #E6F4ED; color: var(--success); }

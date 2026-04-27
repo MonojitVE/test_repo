@@ -1,0 +1,138 @@
+.gen-page {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 48px;
+  align-items: start;
+}
+
+/* ── Sidebar ── */
+.gen-page__sidebar {
+  position: sticky;
+  top: calc(var(--header-h) + 24px);
+}
+
+.gen-page__sidebar-sticky {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.gen-page__title {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 400;
+  color: var(--ink);
+  line-height: 1.2;
+}
+
+.gen-page__desc {
+  font-size: 13.5px;
+  color: var(--ink-soft);
+  line-height: 1.65;
+}
+
+.gen-page__checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.gen-page__checklist-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--ink-muted);
+  margin-bottom: 8px;
+}
+
+.gen-page__checklist-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--ink-soft);
+  padding: 5px 0;
+}
+
+.gen-page__check-icon {
+  color: var(--success);
+  flex-shrink: 0;
+}
+
+.gen-page__tip {
+  background: var(--gold-light);
+  border: 1px solid rgba(201, 146, 42, 0.2);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.gen-page__tip-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gold);
+  letter-spacing: 0.3px;
+}
+
+.gen-page__tip p {
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  line-height: 1.55;
+}
+
+/* ── Main ── */
+.gen-page__main {
+  min-width: 0;
+}
+
+.gen-page__form-wrap {
+  background: var(--surface);
+  border: 1px solid var(--surface-3);
+  border-radius: var(--radius-lg);
+  padding: 8px 36px 36px;
+  box-shadow: var(--shadow-sm);
+}
+
+@media (max-width: 900px) {
+  .gen-page {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+
+  .gen-page__sidebar {
+    position: static;
+  }
+
+  .gen-page__sidebar-sticky {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .gen-page__title { width: 100%; }
+  .gen-page__desc  { display: none; }
+  .gen-page__tip   { display: none; }
+
+  .gen-page__checklist {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .gen-page__checklist-label { width: 100%; }
+
+  .gen-page__checklist-item {
+    background: var(--surface);
+    border: 1px solid var(--surface-3);
+    border-radius: 99px;
+    padding: 4px 12px;
+    font-size: 12px;
+  }
+
+  .gen-page__form-wrap {
+    padding: 8px 20px 24px;
+  }
+}
