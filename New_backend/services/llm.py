@@ -10,7 +10,7 @@ def call_llm(prompt):
     response = client.chat.completions.create(
         model = "gpt-4o-mini",
         messages = [
-            {"role":"system", "content":"You generate structured technical proposals in strict text format only."},
+            {"role":"system", "content":"You generate structured technical proposals in strict JSON format only."},
             {"role":"user", "content": prompt}
         ], 
         temperature = 0.3
