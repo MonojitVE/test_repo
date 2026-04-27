@@ -4,6 +4,7 @@ import os
 
 from pipeline import generate_proposal
 from utils.file_utils import save_proposal
+from fastapi.middleware.cors import CORSMiddleware
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
@@ -16,7 +17,13 @@ from pydantic import BaseModel
 # """
 
 app = FastAPI(title="Proposal Generator API")
-
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,   # must be False when allow_origins=["*"]
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 # ----------------- SCHEMAS ------------------
