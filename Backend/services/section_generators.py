@@ -21,7 +21,7 @@ STRICT RULES:
 - Do NOT generate any other sections
 - Do NOT repeat company overview
 - Do NOT restart numbering
-- Output must be clean plain text only.
+- Output must be clean plain text only, it should not be a list, dictionary, or json.
 - Do not use markdown, symbols, or special formatting.
 
 Previous Content:
@@ -37,6 +37,12 @@ use the following reference:
 def generate_objective(previous_output):
     prompt = f"""
 You are an expert proposal writer.
+
+CRITICAL OUTPUT RULES:
+- Output must be plain raw text
+- Do NOT return JSON
+- Do NOT use brackets or keys
+- Only bullet points
 
 STRICT RULES:
 - Generate ONLY "4 OBJECTIVES"
@@ -81,6 +87,13 @@ def generate_features(previous_output: str) -> str:
     prompt = f"""
 You are an expert proposal writer.
 
+CRITICAL OUTPUT RULES:
+- Output must be plain raw text
+- Do NOT return JSON
+- Do NOT use nested structures
+- Do NOT use keys like "core_modules", etc.
+- Do NOT use brackets or keys
+
 STRICT RULES:
 - Generate ONLY "5 FEATURES AND FUNCTIONALITY"
 - Do NOT repeat previous sections
@@ -100,6 +113,13 @@ Use the following structured guidance:
 def generate_technical_approach(previous_output: str) -> str:
     prompt = f"""
 You are an expert proposal writer.
+
+CRITICAL OUTPUT RULES:
+- Output must be plain raw text
+- Do NOT return JSON
+- Do NOT use brackets or structured objects
+- Do NOT use brackets or keys
+
 
 STRICT RULES:
 - Generate ONLY "6 TECHNICAL APPROACH"
@@ -143,6 +163,7 @@ Backend: Node.js with Express is used to handle API requests, business logic, an
 
 - Do NOT use bullet symbols or markdown
 - Do NOT repeat any section
+- Do NOT use brackets or keys
 
 Previous Content:
 {previous_output}
