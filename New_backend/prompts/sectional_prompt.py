@@ -12,8 +12,6 @@ d_purposeofdocument_prompts = {
 
     "stakeholder_alignment": "Write a paragraph explaining that the document ensures clarity and alignment among stakeholders on scope, approach, expectations, and constraints.",
 
-    "deliverables_points": "Generate bullet points covering scope, approach, performance (if relevant), timeline, and constraints. Skip any that are not applicable.",
-
     "execution_reference": "Write a statement explaining that the document serves as a baseline reference for execution, validation, and acceptance.",
 
     "future_scope_examples": "Suggest future enhancements only if applicable (e.g., scaling, integrations, AI features, automation). Otherwise, keep it minimal or generic.",
