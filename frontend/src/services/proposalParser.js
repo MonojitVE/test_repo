@@ -61,11 +61,9 @@ function splitSegments(text) {
   }
   return segments;
 }
-
 // ── Convert any JSON value into typed content items ───────────────────────────
 function jsonToItems(value, depth = 0) {
   const items = [];
-
   if (typeof value === "string") {
     const t = value.trim();
     if (t) items.push({ type: depth === 0 ? "body" : "bullet", text: t });
@@ -76,7 +74,6 @@ function jsonToItems(value, depth = 0) {
   } else if (typeof value === "object" && value !== null) {
     // Unwrap single-key wrapper e.g. { "purpose_of_document": [...] }
     const keys = Object.keys(value);
-
     // Special: if only key and value is string/array, unwrap
     if (keys.length === 1) {
       const inner = value[keys[0]];
@@ -91,7 +88,6 @@ function jsonToItems(value, depth = 0) {
         return items;
       }
     }
-
     keys.forEach((key) => {
       const val = value[key];
       const label = key
@@ -109,7 +105,6 @@ function jsonToItems(value, depth = 0) {
           items.push({ type: "body", text: val.trim() });
         return;
       }
-
       if (typeof val === "string") {
         items.push({ type: "subsection", text: label });
         items.push({ type: "body", text: val.trim() });
@@ -140,13 +135,10 @@ function jsonToItems(value, depth = 0) {
       }
     });
   }
-
   return items;
 }
-
 // ── Section heading regex ─────────────────────────────────────────────────────
 const H1_RE = /^(\d+)\s+([A-Z][A-Z\s&/,]+)$/;
-
 // ── Main parser ───────────────────────────────────────────────────────────────
 /**
  * @param {string} rawText
@@ -159,12 +151,10 @@ export function parseProposal(rawText) {
   const sections = [];
   const plainLines = [];
   let current = null;
-
   function ensureSection(num, title) {
     if (current) sections.push(current);
     current = { num, title, items: [] };
   }
-
   function addItem(item) {
     if (!current) ensureSection("", "");
     current.items.push(item);
@@ -206,22 +196,17 @@ export function parseProposal(rawText) {
       });
     }
   }
-
   if (current) sections.push(current);
-
   // Remove empty spacer-only sections
   const filtered = sections.filter(
     (s) => s.title || s.items.some((i) => i.type !== "spacer"),
   );
-
   const plainText = plainLines
     .join("\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
-
   return { sections: filtered, plainText };
 }
-
 /**
  * Returns only the plain text version (for PDF generator + copy).
  */
