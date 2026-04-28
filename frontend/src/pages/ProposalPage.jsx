@@ -17,6 +17,7 @@ export default function ProposalPage() {
     proposalText: initialText,
     clientName,
     formData,
+    screenshots = [],
   } = location.state || {};
 
   const [proposalText, setProposalText] = useState(initialText || "");
@@ -34,9 +35,7 @@ export default function ProposalPage() {
     setPdfLoading(true);
     setPdfError("");
     try {
-      // Convert raw JSON/text mix → clean plain text for PDF
       const cleanText = parseProposalText(proposalText);
-
       const blob = await generateProposalPdf(cleanText, {
         projectTitle: formData?.project_name || "Project Proposal",
         preparedBy: "Virtual Employee",
@@ -46,8 +45,8 @@ export default function ProposalPage() {
           month: "long",
           year: "numeric",
         }),
+        screenshots,
       });
-
       const slug = clientName
         ? clientName.replace(/\s+/g, "_").toLowerCase()
         : "proposal";
@@ -57,7 +56,7 @@ export default function ProposalPage() {
     } finally {
       setPdfLoading(false);
     }
-  }, [proposalText, clientName, formData]);
+  }, [proposalText, clientName, formData, screenshots]);
 
   const handleCopy = useCallback(async () => {
     const cleanText = parseProposalText(proposalText);
@@ -92,6 +91,28 @@ export default function ProposalPage() {
   };
 
   if (!initialText) return null;
+
+  // TOC: insert "Demo Screenshots" before the last item
+  const baseToc = [
+    "Company Overview",
+    "Purpose of Document",
+    "Key Deliverables",
+    "Objectives",
+    "Features & Functionality",
+    "Technical Approach",
+    "Technology Stack",
+    "Future Scope",
+    "Time & Budget Estimate",
+  ];
+
+  const tocItems =
+    screenshots.length > 0
+      ? [
+          ...baseToc.slice(0, -1),
+          "Demo Screenshots",
+          baseToc[baseToc.length - 1],
+        ]
+      : baseToc;
 
   return (
     <PageShell>
@@ -132,20 +153,14 @@ export default function ProposalPage() {
           {/* TOC sidebar */}
           <aside className="proposal-page__toc">
             <p className="proposal-page__toc-label">Contents</p>
-            {[
-              "Company Overview",
-              "Purpose of Document",
-              "Key Deliverables",
-              "Objectives",
-              "Features & Functionality",
-              "Technical Approach",
-              "Technology Stack",
-              "Future Scope",
-              "Time & Budget Estimate",
-            ].map((s, i) => (
+            {tocItems.map((s, i) => (
               <a
                 key={s}
-                href={`#section-${i}`}
+                href={
+                  s === "Demo Screenshots"
+                    ? "#section-screenshots"
+                    : `#section-${i}`
+                }
                 className="proposal-page__toc-item"
               >
                 <span className="proposal-page__toc-num">
@@ -191,8 +206,7 @@ export default function ProposalPage() {
               </div>
             ) : (
               <div className="proposal-page__viewer">
-                {/* ProposalViewer handles JSON parsing internally */}
-                <ProposalViewer text={proposalText} />
+                <ProposalViewer text={proposalText} screenshots={screenshots} />
               </div>
             )}
           </div>

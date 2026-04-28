@@ -16,7 +16,8 @@ export default function GeneratorPage() {
         state: {
           proposalText: proposal.proposalText,
           clientName: proposal.form.client_name,
-          formData: proposal.form, // ← includes project_name
+          formData: proposal.form,
+          screenshots: proposal.form.screenshots,
         },
       });
     }
@@ -25,7 +26,6 @@ export default function GeneratorPage() {
   return (
     <PageShell>
       <div className="gen-page">
-        {/* Sidebar */}
         <aside className="gen-page__sidebar">
           <div className="gen-page__sidebar-sticky">
             <h1 className="gen-page__title">New Proposal</h1>
@@ -33,7 +33,6 @@ export default function GeneratorPage() {
               Fill in the details below. The more context you provide, the more
               tailored and accurate your proposal will be.
             </p>
-
             <div className="gen-page__checklist">
               <p className="gen-page__checklist-label">
                 Your proposal will include:
@@ -67,7 +66,6 @@ export default function GeneratorPage() {
                 </div>
               ))}
             </div>
-
             <div className="gen-page__tip">
               <span className="gen-page__tip-label">💡 Tip</span>
               <p>
@@ -78,7 +76,6 @@ export default function GeneratorPage() {
           </div>
         </aside>
 
-        {/* Main content */}
         <main className="gen-page__main">
           {proposal.status === "generating" ? (
             <GenerationLoader
@@ -90,6 +87,8 @@ export default function GeneratorPage() {
               <ProposalForm
                 form={proposal.form}
                 updateField={proposal.updateField}
+                addScreenshots={proposal.addScreenshots}
+                removeScreenshot={proposal.removeScreenshot}
                 onSubmit={proposal.generate}
                 loading={proposal.status === "generating"}
                 error={proposal.error}

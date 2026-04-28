@@ -12,6 +12,7 @@ const INITIAL_FORM = {
   resources: "",
   client_name: "",
   extra_requirements: "",
+  screenshots: [], // Array of { file: File, dataUrl: string, name: string }
 };
 
 const GENERATION_STEPS = [
@@ -37,6 +38,31 @@ export function useProposal() {
 
   const updateField = useCallback((field, value) => {
     setForm((f) => ({ ...f, [field]: value }));
+  }, []);
+
+  // Add screenshots — converts File objects to dataURLs for display + PDF
+  const addScreenshots = useCallback((files) => {
+    const fileArray = Array.from(files);
+    fileArray.forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setForm((f) => ({
+          ...f,
+          screenshots: [
+            ...f.screenshots,
+            { file, dataUrl: e.target.result, name: file.name },
+          ],
+        }));
+      };
+      reader.readAsDataURL(file);
+    });
+  }, []);
+
+  const removeScreenshot = useCallback((index) => {
+    setForm((f) => ({
+      ...f,
+      screenshots: f.screenshots.filter((_, i) => i !== index),
+    }));
   }, []);
 
   const resetForm = useCallback(() => {
@@ -69,8 +95,6 @@ export function useProposal() {
     }, 3200);
 
     try {
-      // Store raw text — ProposalViewer parses JSON internally
-      // ProposalPage uses parseProposalText() for PDF generation
       const rawText = await generateProposal(form);
       clearInterval(interval);
       setStepIndex(totalSteps - 1);
@@ -87,6 +111,8 @@ export function useProposal() {
   return {
     form,
     updateField,
+    addScreenshots,
+    removeScreenshot,
     resetForm,
     proposalText,
     setProposalText,
