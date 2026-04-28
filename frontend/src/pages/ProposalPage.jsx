@@ -18,14 +18,16 @@ export default function ProposalPage() {
     clientName,
     formData,
     screenshots = [],
+    demoLink = "",
+    demoLabel = "",
   } = location.state || {};
 
   const [proposalText, setProposalText] = useState(initialText || "");
-  const [editMode, setEditMode] = useState(false);
-  const [editDraft, setEditDraft] = useState(initialText || "");
-  const [pdfLoading, setPdfLoading] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const [pdfError, setPdfError] = useState("");
+  const [editMode, setEditMode]         = useState(false);
+  const [editDraft, setEditDraft]       = useState(initialText || "");
+  const [pdfLoading, setPdfLoading]     = useState(false);
+  const [copied, setCopied]             = useState(false);
+  const [pdfError, setPdfError]         = useState("");
 
   useEffect(() => {
     if (!initialText) navigate("/generate", { replace: true });
@@ -38,14 +40,14 @@ export default function ProposalPage() {
       const cleanText = parseProposalText(proposalText);
       const blob = await generateProposalPdf(cleanText, {
         projectTitle: formData?.project_name || "Project Proposal",
-        preparedBy: "Virtual Employee",
-        clientName: clientName || "",
-        date: new Date().toLocaleDateString("en-GB", {
-          day: "numeric",
-          month: "long",
-          year: "numeric",
+        preparedBy:   "Virtual Employee",
+        clientName:   clientName || "",
+        date:         new Date().toLocaleDateString("en-GB", {
+          day: "numeric", month: "long", year: "numeric",
         }),
         screenshots,
+        demoLink:  demoLink.trim(),
+        demoLabel: demoLabel.trim() || "Project Demo",
       });
       const slug = clientName
         ? clientName.replace(/\s+/g, "_").toLowerCase()
@@ -56,7 +58,7 @@ export default function ProposalPage() {
     } finally {
       setPdfLoading(false);
     }
-  }, [proposalText, clientName, formData, screenshots]);
+  }, [proposalText, clientName, formData, screenshots, demoLink, demoLabel]);
 
   const handleCopy = useCallback(async () => {
     const cleanText = parseProposalText(proposalText);
@@ -92,7 +94,7 @@ export default function ProposalPage() {
 
   if (!initialText) return null;
 
-  // TOC: insert "Demo Screenshots" before the last item
+  // ── Build sidebar TOC ────────────────────────────────────────────────────
   const baseToc = [
     "Company Overview",
     "Purpose of Document",
@@ -105,24 +107,17 @@ export default function ProposalPage() {
     "Time & Budget Estimate",
   ];
 
-  const tocItems =
-    screenshots.length > 0
-      ? [
-          ...baseToc.slice(0, -1),
-          "Demo Screenshots",
-          baseToc[baseToc.length - 1],
-        ]
-      : baseToc;
+  const tocItems = screenshots.length > 0
+    ? [...baseToc.slice(0, -1), "Demo Screenshots", baseToc[baseToc.length - 1]]
+    : baseToc;
 
   return (
     <PageShell>
       <div className="proposal-page">
+
         {/* Breadcrumb */}
         <div className="proposal-page__breadcrumb">
-          <button
-            className="proposal-page__back"
-            onClick={() => navigate("/generate")}
-          >
+          <button className="proposal-page__back" onClick={() => navigate("/generate")}>
             ← New Proposal
           </button>
           <span className="proposal-page__breadcrumb-sep">/</span>
@@ -143,24 +138,19 @@ export default function ProposalPage() {
         />
 
         {pdfError && (
-          <div className="proposal-page__error" role="alert">
-            ⚠ {pdfError}
-          </div>
+          <div className="proposal-page__error" role="alert">⚠ {pdfError}</div>
         )}
 
         {/* Content */}
         <div className="proposal-page__body">
+
           {/* TOC sidebar */}
           <aside className="proposal-page__toc">
             <p className="proposal-page__toc-label">Contents</p>
             {tocItems.map((s, i) => (
               <a
                 key={s}
-                href={
-                  s === "Demo Screenshots"
-                    ? "#section-screenshots"
-                    : `#section-${i}`
-                }
+                href={s === "Demo Screenshots" ? "#section-screenshots" : `#section-${i}`}
                 className="proposal-page__toc-item"
               >
                 <span className="proposal-page__toc-num">
@@ -169,6 +159,12 @@ export default function ProposalPage() {
                 {s}
               </a>
             ))}
+            {demoLink.trim() && (
+              <a href="#section-demo" className="proposal-page__toc-item">
+                <span className="proposal-page__toc-num">🔗</span>
+                {demoLabel.trim() || "Demo Link"}
+              </a>
+            )}
           </aside>
 
           {/* Editor / Viewer */}
@@ -180,20 +176,8 @@ export default function ProposalPage() {
                     ✏ Edit Mode — changes apply to PDF download
                   </span>
                   <div className="proposal-page__editor-actions">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleEditToggle}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      onClick={handleSaveEdit}
-                    >
-                      Save Changes
-                    </Button>
+                    <Button variant="ghost" size="sm" onClick={handleEditToggle}>Cancel</Button>
+                    <Button variant="primary" size="sm" onClick={handleSaveEdit}>Save Changes</Button>
                   </div>
                 </div>
                 <textarea

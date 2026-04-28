@@ -256,6 +256,7 @@ export default function ProposalForm({
               multiple
               className="screenshot-drop__input"
               onChange={(e) => addScreenshots(e.target.files)}
+              onClick={(e) => e.stopPropagation()}
             />
             <div className="screenshot-drop__icon">🖼</div>
             <p className="screenshot-drop__label">
@@ -295,6 +296,40 @@ export default function ProposalForm({
               ))}
             </div>
           )}
+        </div>
+      </section>
+
+      {/* 06 — Demo Link */}
+      <section className="proposal-form__section">
+        <div className="proposal-form__section-header">
+          <span className="proposal-form__section-num">06</span>
+          <div>
+            <h2 className="proposal-form__section-title">Demo Link</h2>
+            <p className="proposal-form__section-desc">
+              Optional. Add a live demo URL — it will appear as a clickable
+              link section in the PDF.
+            </p>
+          </div>
+        </div>
+        <div className="proposal-form__fields proposal-form__fields--grid">
+          <FormField
+            label="Demo Label"
+            name="demoLabel"
+            as="input"
+            value={form.demoLabel}
+            onChange={updateField}
+            placeholder="e.g. Live Project Demo"
+            hint="Short name shown above the link."
+          />
+          <FormField
+            label="Demo URL"
+            name="demoLink"
+            as="input"
+            value={form.demoLink}
+            onChange={updateField}
+            placeholder="e.g. https://demo.yourproject.com"
+            hint="Full URL including https://"
+          />
         </div>
       </section>
 

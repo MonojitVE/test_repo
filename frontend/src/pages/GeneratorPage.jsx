@@ -18,6 +18,8 @@ export default function GeneratorPage() {
           clientName: proposal.form.client_name,
           formData: proposal.form,
           screenshots: proposal.form.screenshots,
+          demoLink: proposal.form.demoLink,
+          demoLabel: proposal.form.demoLabel,
         },
       });
     }

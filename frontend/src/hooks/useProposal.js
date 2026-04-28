@@ -12,7 +12,9 @@ const INITIAL_FORM = {
   resources: "",
   client_name: "",
   extra_requirements: "",
-  screenshots: [], // Array of { file: File, dataUrl: string, name: string }
+  screenshots: [],
+  demoLink: "",
+  demoLabel: "",
 };
 
 const GENERATION_STEPS = [
@@ -40,7 +42,6 @@ export function useProposal() {
     setForm((f) => ({ ...f, [field]: value }));
   }, []);
 
-  // Add screenshots — converts File objects to dataURLs for display + PDF
   const addScreenshots = useCallback((files) => {
     const fileArray = Array.from(files);
     fileArray.forEach((file) => {
@@ -122,5 +123,6 @@ export function useProposal() {
     steps: GENERATION_STEPS,
     generate,
     pdfLoading,
+    setPdfLoading,
   };
 }

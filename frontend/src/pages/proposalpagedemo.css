@@ -1,0 +1,98 @@
+/* ── Demo Link Panel ─────────────────────────────────────────────────────────── */
+
+.proposal-page__demo-panel {
+  margin: 0 0 16px 0;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.proposal-page__demo-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 11px 16px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #2980B9;
+  text-align: left;
+  transition: background 0.15s;
+}
+
+.proposal-page__demo-toggle:hover {
+  background: #f0f7ff;
+}
+
+.proposal-page__demo-toggle--active {
+  background: #f0f7ff;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.proposal-page__demo-toggle-chevron {
+  margin-left: auto;
+  font-size: 10px;
+  color: #94a3b8;
+}
+
+.proposal-page__demo-inputs {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: #fafcff;
+}
+
+.proposal-page__demo-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.proposal-page__demo-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.proposal-page__demo-optional {
+  font-weight: 400;
+  color: #94a3b8;
+}
+
+.proposal-page__demo-input {
+  padding: 8px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  font-size: 13.5px;
+  color: #1e293b;
+  background: #fff;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.proposal-page__demo-input:focus {
+  border-color: #2980B9;
+  box-shadow: 0 0 0 3px rgba(41, 128, 185, 0.12);
+}
+
+.proposal-page__demo-input::placeholder {
+  color: #b0bec5;
+}
+
+.proposal-page__demo-hint {
+  font-size: 12px;
+  color: #94a3b8;
+  margin: 0;
+}
+
+.proposal-page__toc-item--demo {
+  color: #2980B9;
+  font-style: italic;
+}
