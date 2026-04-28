@@ -6,7 +6,6 @@
   max-width: 760px;
 }
 
-/* ── Section block ── */
 .pv__section {
   margin-bottom: 8px;
 }
@@ -61,18 +60,21 @@
   padding-left: 2px;
 }
 
-/* ── Subsections (Frontend:, Backend: etc.) ── */
+/* ── Subsections e.g. "Frontend:", "Backend:" ── */
 .pv__subsection {
   font-family: var(--font-body);
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--ink);
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-  margin-top: 16px;
+  text-transform: none; /* removed uppercase */
+  letter-spacing: 0;
+  margin-top: 20px;
   margin-bottom: 6px;
-  padding-bottom: 4px;
-  border-bottom: 1px dashed var(--surface-3);
+  padding-bottom: 0;
+  border-bottom: none; /* removed dashed underline */
+  border-left: 3px solid var(--accent); /* left accent bar instead */
+  padding-left: 10px;
+  line-height: 1.4;
 }
 
 /* ── Bullets ── */
@@ -103,9 +105,8 @@
   line-height: 1.75;
   margin-bottom: 6px;
 }
-/* ── Add these to the bottom of your existing ProposalViewer.css ── */
 
-/* Screenshots grid */
+/* ── Screenshots grid ── */
 .pv__screenshots {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
