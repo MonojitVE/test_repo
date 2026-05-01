@@ -42,7 +42,7 @@ function buildPrompt(formData) {
 export async function generateProposal(formData) {
   const prompt = buildPrompt(formData);
 
-  const res = await fetch(`${BASE_URL}/generate`, {
+  const res = await fetch(`${BASE_URL}/proposal/generate`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ prompt }),
