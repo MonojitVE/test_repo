@@ -22,41 +22,38 @@ function SectionItem({ item }) {
   }
 }
 
-export default function ProposalViewer({ text, screenshots = [] }) {
-  const { sections } = useMemo(() => parseProposal(text || ""), [text]);
+/**
+ * ProposalViewer accepts:
+ * - data: full_proposal JSON object (new backend) OR plain text string (legacy)
+ * - screenshots: array of { dataUrl, name }
+ */
+export default function ProposalViewer({ data, text, screenshots = [] }) {
+  // Accept either `data` (new) or `text` (legacy)
+  const input = data ?? text ?? "";
+  const { sections } = useMemo(() => parseProposal(input), [input]);
 
   if (!sections.length && !screenshots.length) return null;
 
   const hasScreenshots = screenshots.length > 0;
-
-  // Screenshots injects before the 2nd-to-last section (TIME AND BUDGET).
-  // It takes that section's original number.
-  // TIME AND BUDGET and FUTURE SCOPE each get their original number + 1.
-  const injectBeforeIndex = sections.length - 2; // second-to-last
+  const injectBeforeIndex = sections.length - 2; // before second-to-last
   const screenshotNum = hasScreenshots
-    ? (sections[injectBeforeIndex]?.num ?? injectBeforeIndex + 1)
+    ? (sections[injectBeforeIndex]?.num ?? String(injectBeforeIndex + 1))
     : null;
 
   return (
     <div className="pv">
       {sections.map((section, si) => {
-        // Any section at or after the inject point gets its number bumped by 1
         const isBumped = hasScreenshots && si >= injectBeforeIndex;
-        const displayNum = isBumped
-          ? section.num
+        const displayNum =
+          isBumped && section.num
             ? String(Number(section.num) + 1)
-            : null
-          : section.num;
+            : section.num;
 
         return (
-          <>
-            {/* Inject screenshots before the second-to-last section */}
+          <div key={si}>
+            {/* Inject screenshots before second-to-last section */}
             {si === injectBeforeIndex && hasScreenshots && (
-              <div
-                key="screenshots"
-                className="pv__section"
-                id="section-screenshots"
-              >
+              <div className="pv__section" id="section-screenshots">
                 <div className="pv__heading-wrap">
                   <h2 className="pv__heading">
                     <span className="pv__heading-num">{screenshotNum}</span>
@@ -82,7 +79,7 @@ export default function ProposalViewer({ text, screenshots = [] }) {
             )}
 
             {/* Regular section */}
-            <div key={si} className="pv__section" id={`section-${si}`}>
+            <div className="pv__section" id={`section-${si}`}>
               {section.title && (
                 <div className="pv__heading-wrap">
                   <h2 className="pv__heading">
@@ -100,7 +97,7 @@ export default function ProposalViewer({ text, screenshots = [] }) {
                 ))}
               </div>
             </div>
-          </>
+          </div>
         );
       })}
     </div>

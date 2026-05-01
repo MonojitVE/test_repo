@@ -2,19 +2,27 @@ import { useState, useCallback, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import PageShell from "../components/layout/PageShell";
 import ProposalToolbar from "../components/proposal/ProposalToolbar";
-import ProposalViewer from "../components/proposal/ProposalViewer";
+import TemplatedViewer from "../components/proposal/TemplatedViewer";
 import Button from "../components/ui/Button";
 import { triggerDownload } from "../services/api";
 import { generateProposalPdf } from "../services/pdfGenerator";
 import { parseProposalText } from "../services/proposalParser";
 import "./ProposalPage.css";
 
+const DEFAULT_TEMPLATE = {
+  id: "default",
+  borderStyle: "simple",
+  borderColor: "#2980B9",
+  bgColor: "#ffffff",
+  slotImages: {},
+};
+
 export default function ProposalPage() {
   const location = useLocation();
   const navigate = useNavigate();
 
   const {
-    proposalText: initialText,
+    proposalData, // full_proposal JSON object from backend
     clientName,
     formData,
     screenshots = [],
@@ -22,32 +30,41 @@ export default function ProposalPage() {
     demoLabel = "",
   } = location.state || {};
 
-  const [proposalText, setProposalText] = useState(initialText || "");
-  const [editMode, setEditMode]         = useState(false);
-  const [editDraft, setEditDraft]       = useState(initialText || "");
-  const [pdfLoading, setPdfLoading]     = useState(false);
-  const [copied, setCopied]             = useState(false);
-  const [pdfError, setPdfError]         = useState("");
+  // Edit mode works on plain text derived from proposalData
+  const [editDraft, setEditDraft] = useState("");
+  const [editMode, setEditMode] = useState(false);
+  const [editedData, setEditedData] = useState(null); // overrides proposalData when user saves edits
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [pdfError, setPdfError] = useState("");
+  const [template, setTemplate] = useState(DEFAULT_TEMPLATE);
 
   useEffect(() => {
-    if (!initialText) navigate("/generate", { replace: true });
-  }, [initialText, navigate]);
+    if (!proposalData) navigate("/generate", { replace: true });
+  }, [proposalData, navigate]);
+
+  // The active data — either edited plain text or original JSON object
+  const activeData = editedData ?? proposalData;
 
   const handleDownloadPdf = useCallback(async () => {
     setPdfLoading(true);
     setPdfError("");
     try {
-      const cleanText = parseProposalText(proposalText);
+      // parseProposalText handles both JSON object and plain text string
+      const cleanText = parseProposalText(activeData);
       const blob = await generateProposalPdf(cleanText, {
         projectTitle: formData?.project_name || "Project Proposal",
-        preparedBy:   "Virtual Employee",
-        clientName:   clientName || "",
-        date:         new Date().toLocaleDateString("en-GB", {
-          day: "numeric", month: "long", year: "numeric",
+        preparedBy: "Virtual Employee",
+        clientName: clientName || "",
+        date: new Date().toLocaleDateString("en-GB", {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
         }),
         screenshots,
-        demoLink:  demoLink.trim(),
+        demoLink: demoLink.trim(),
         demoLabel: demoLabel.trim() || "Project Demo",
+        template,
       });
       const slug = clientName
         ? clientName.replace(/\s+/g, "_").toLowerCase()
@@ -58,10 +75,18 @@ export default function ProposalPage() {
     } finally {
       setPdfLoading(false);
     }
-  }, [proposalText, clientName, formData, screenshots, demoLink, demoLabel]);
+  }, [
+    activeData,
+    clientName,
+    formData,
+    screenshots,
+    demoLink,
+    demoLabel,
+    template,
+  ]);
 
   const handleCopy = useCallback(async () => {
-    const cleanText = parseProposalText(proposalText);
+    const cleanText = parseProposalText(activeData);
     try {
       await navigator.clipboard.writeText(cleanText);
       setCopied(true);
@@ -76,25 +101,30 @@ export default function ProposalPage() {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
-  }, [proposalText]);
+  }, [activeData]);
 
   const handleEditToggle = () => {
-    if (editMode) setEditDraft(proposalText);
+    if (!editMode) {
+      // Enter edit mode — populate draft with current plain text
+      setEditDraft(parseProposalText(activeData));
+    } else {
+      // Cancel — reset draft
+      setEditDraft("");
+    }
     setEditMode((e) => !e);
   };
 
   const handleSaveEdit = () => {
-    setProposalText(editDraft);
+    // Save as plain text string — ProposalViewer handles both
+    setEditedData(editDraft);
     setEditMode(false);
   };
 
-  const handleRegenerate = () => {
+  const handleRegenerate = () =>
     navigate("/generate", { state: { prefill: formData } });
-  };
 
-  if (!initialText) return null;
+  if (!proposalData) return null;
 
-  // ── Build sidebar TOC ────────────────────────────────────────────────────
   const baseToc = [
     "Company Overview",
     "Purpose of Document",
@@ -106,18 +136,23 @@ export default function ProposalPage() {
     "Future Scope",
     "Time & Budget Estimate",
   ];
-
-  const tocItems = screenshots.length > 0
-    ? [...baseToc.slice(0, -1), "Demo Screenshots", baseToc[baseToc.length - 1]]
-    : baseToc;
+  const tocItems =
+    screenshots.length > 0
+      ? [
+          ...baseToc.slice(0, -1),
+          "Demo Screenshots",
+          baseToc[baseToc.length - 1],
+        ]
+      : baseToc;
 
   return (
     <PageShell>
       <div className="proposal-page">
-
-        {/* Breadcrumb */}
         <div className="proposal-page__breadcrumb">
-          <button className="proposal-page__back" onClick={() => navigate("/generate")}>
+          <button
+            className="proposal-page__back"
+            onClick={() => navigate("/generate")}
+          >
             ← New Proposal
           </button>
           <span className="proposal-page__breadcrumb-sep">/</span>
@@ -126,7 +161,6 @@ export default function ProposalPage() {
           </span>
         </div>
 
-        {/* Toolbar */}
         <ProposalToolbar
           onDownloadPdf={handleDownloadPdf}
           onRegenerate={handleRegenerate}
@@ -135,22 +169,27 @@ export default function ProposalPage() {
           pdfLoading={pdfLoading}
           copied={copied}
           clientName={clientName}
+          template={template}
+          onTemplateChange={setTemplate}
         />
 
         {pdfError && (
-          <div className="proposal-page__error" role="alert">⚠ {pdfError}</div>
+          <div className="proposal-page__error" role="alert">
+            ⚠ {pdfError}
+          </div>
         )}
 
-        {/* Content */}
         <div className="proposal-page__body">
-
-          {/* TOC sidebar */}
           <aside className="proposal-page__toc">
             <p className="proposal-page__toc-label">Contents</p>
             {tocItems.map((s, i) => (
               <a
                 key={s}
-                href={s === "Demo Screenshots" ? "#section-screenshots" : `#section-${i}`}
+                href={
+                  s === "Demo Screenshots"
+                    ? "#section-screenshots"
+                    : `#section-${i}`
+                }
                 className="proposal-page__toc-item"
               >
                 <span className="proposal-page__toc-num">
@@ -167,7 +206,6 @@ export default function ProposalPage() {
             )}
           </aside>
 
-          {/* Editor / Viewer */}
           <div className="proposal-page__doc">
             {editMode ? (
               <div className="proposal-page__editor-wrap">
@@ -176,8 +214,20 @@ export default function ProposalPage() {
                     ✏ Edit Mode — changes apply to PDF download
                   </span>
                   <div className="proposal-page__editor-actions">
-                    <Button variant="ghost" size="sm" onClick={handleEditToggle}>Cancel</Button>
-                    <Button variant="primary" size="sm" onClick={handleSaveEdit}>Save Changes</Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleEditToggle}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={handleSaveEdit}
+                    >
+                      Save Changes
+                    </Button>
                   </div>
                 </div>
                 <textarea
@@ -189,9 +239,11 @@ export default function ProposalPage() {
                 />
               </div>
             ) : (
-              <div className="proposal-page__viewer">
-                <ProposalViewer text={proposalText} screenshots={screenshots} />
-              </div>
+              <TemplatedViewer
+                data={activeData}
+                screenshots={screenshots}
+                template={template}
+              />
             )}
           </div>
         </div>

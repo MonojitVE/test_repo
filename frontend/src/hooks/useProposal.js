@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import { generateProposal } from "../services/api";
 
 const INITIAL_FORM = {
-  project_name: "",
+  project_name: "", // frontend-only, used for PDF cover
   description: "",
   project_type: "",
   industry: "",
@@ -32,7 +32,7 @@ const GENERATION_STEPS = [
 
 export function useProposal() {
   const [form, setForm] = useState(INITIAL_FORM);
-  const [proposalText, setProposalText] = useState("");
+  const [proposalData, setProposalData] = useState(null); // full_proposal object
   const [status, setStatus] = useState("idle");
   const [error, setError] = useState("");
   const [stepIndex, setStepIndex] = useState(0);
@@ -43,8 +43,7 @@ export function useProposal() {
   }, []);
 
   const addScreenshots = useCallback((files) => {
-    const fileArray = Array.from(files);
-    fileArray.forEach((file) => {
+    Array.from(files).forEach((file) => {
       const reader = new FileReader();
       reader.onload = (e) => {
         setForm((f) => ({
@@ -68,7 +67,7 @@ export function useProposal() {
 
   const resetForm = useCallback(() => {
     setForm(INITIAL_FORM);
-    setProposalText("");
+    setProposalData(null);
     setStatus("idle");
     setError("");
     setStepIndex(0);
@@ -96,11 +95,12 @@ export function useProposal() {
     }, 3200);
 
     try {
-      const rawText = await generateProposal(form);
+      // Returns full_proposal object from backend
+      const fullProposal = await generateProposal(form);
       clearInterval(interval);
       setStepIndex(totalSteps - 1);
       await new Promise((r) => setTimeout(r, 600));
-      setProposalText(rawText);
+      setProposalData(fullProposal);
       setStatus("done");
     } catch (e) {
       clearInterval(interval);
@@ -115,8 +115,8 @@ export function useProposal() {
     addScreenshots,
     removeScreenshot,
     resetForm,
-    proposalText,
-    setProposalText,
+    proposalData, // full_proposal JSON object
+    setProposalData,
     status,
     error,
     stepIndex,

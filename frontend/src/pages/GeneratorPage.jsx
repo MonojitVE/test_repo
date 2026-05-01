@@ -11,10 +11,10 @@ export default function GeneratorPage() {
   const proposal = useProposal();
 
   useEffect(() => {
-    if (proposal.status === "done" && proposal.proposalText) {
+    if (proposal.status === "done" && proposal.proposalData) {
       navigate("/proposal", {
         state: {
-          proposalText: proposal.proposalText,
+          proposalData: proposal.proposalData, // full_proposal JSON object
           clientName: proposal.form.client_name,
           formData: proposal.form,
           screenshots: proposal.form.screenshots,
@@ -23,7 +23,7 @@ export default function GeneratorPage() {
         },
       });
     }
-  }, [proposal.status, proposal.proposalText]);
+  }, [proposal.status, proposal.proposalData]);
 
   return (
     <PageShell>

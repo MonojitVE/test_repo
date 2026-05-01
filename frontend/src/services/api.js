@@ -1,51 +1,64 @@
 const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 /**
- * Generate a proposal from form data.
- * @param {Object} formData
- * @returns {Promise<string>} proposal_text
+ * Build a prompt string from form fields (excluding project_name which stays frontend-only).
  */
-export async function generateProposal(formData) {
-  const res = await fetch(`${BASE_URL}/generate`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(formData),
-  });
+function buildPrompt(formData) {
+  const parts = [];
 
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || `Server error ${res.status}`);
-  }
+  if (formData.description?.trim())
+    parts.push(`Project Description: ${formData.description.trim()}`);
+  if (formData.project_type?.trim())
+    parts.push(`Project Type: ${formData.project_type.trim()}`);
+  if (formData.industry?.trim())
+    parts.push(`Industry/Domain: ${formData.industry.trim()}`);
+  if (formData.timeline?.trim())
+    parts.push(`Timeline: ${formData.timeline.trim()}`);
+  if (formData.budget?.trim()) parts.push(`Budget: ${formData.budget.trim()}`);
+  if (formData.phases?.trim())
+    parts.push(`Project Phases: ${formData.phases.trim()}`);
+  if (formData.resources?.trim())
+    parts.push(`Team & Resources: ${formData.resources.trim()}`);
+  if (formData.client_name?.trim())
+    parts.push(`Client/Company: ${formData.client_name.trim()}`);
+  if (formData.extra_requirements?.trim())
+    parts.push(
+      `Additional Requirements: ${formData.extra_requirements.trim()}`,
+    );
 
-  const data = await res.json();
-  return data.proposal_text;
+  return parts.join("\n");
 }
 
 /**
- * Generate and download proposal PDF from backend
- * @param {string} proposalText
- * @returns {Promise<Blob>}
+ * Generate a proposal from form data.
+ * Sends { prompt: string } to backend, returns full_proposal JSON object.
+ * @param {Object} formData
+ * @returns {Promise<Object>} full_proposal
  */
-export async function downloadProposalPdf(proposalText) {
-  const res = await fetch(`${BASE_URL}/generate-pdf`, {
+export async function generateProposal(formData) {
+  const prompt = buildPrompt(formData);
+
+  const res = await fetch(`${BASE_URL}/generate`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text: proposalText }),
+    body: JSON.stringify({ prompt }),
   });
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || `Server error ${res.status}`);
+    throw new Error(
+      (Array.isArray(err.detail) ? err.detail[0]?.msg : err.detail) ||
+        `Server error ${res.status}`,
+    );
   }
 
-  const blob = await res.blob();
-  return blob;
+  const data = await res.json();
+  // Return the full_proposal object directly
+  return data.full_proposal;
 }
 
 /**
  * Trigger browser download from a Blob.
- * @param {Blob} blob
- * @param {string} filename
  */
 export function triggerDownload(blob, filename = "proposal.pdf") {
   const url = URL.createObjectURL(blob);
