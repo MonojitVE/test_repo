@@ -1,0 +1,17 @@
+# pycache dirs
+__pycache__
+__pycache__/
+*.pyc
+
+# Virtual Environments
+.venv/
+venv/
+
+# Environment Variables
+env/
+.env
+.env.*
+
+# IDEs
+.vscode/
+.idea/
