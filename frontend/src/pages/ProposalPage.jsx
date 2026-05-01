@@ -23,6 +23,7 @@ export default function ProposalPage() {
 
   const {
     proposalData, // full_proposal JSON object from backend
+    projectName = "", // from backend meta, used for PDF title and breadcrumb
     clientName,
     formData,
     screenshots = [],
@@ -53,7 +54,7 @@ export default function ProposalPage() {
       // parseProposalText handles both JSON object and plain text string
       const cleanText = parseProposalText(activeData);
       const blob = await generateProposalPdf(cleanText, {
-        projectTitle: formData?.project_name || "Project Proposal",
+        projectTitle: projectName || "Project Proposal",
         preparedBy: "Virtual Employee",
         clientName: clientName || "",
         date: new Date().toLocaleDateString("en-GB", {

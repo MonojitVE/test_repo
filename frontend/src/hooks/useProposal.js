@@ -2,7 +2,6 @@ import { useState, useCallback } from "react";
 import { generateProposal } from "../services/api";
 
 const INITIAL_FORM = {
-  project_name: "", // frontend-only, used for PDF cover
   description: "",
   project_type: "",
   industry: "",
@@ -32,7 +31,8 @@ const GENERATION_STEPS = [
 
 export function useProposal() {
   const [form, setForm] = useState(INITIAL_FORM);
-  const [proposalData, setProposalData] = useState(null); // full_proposal object
+  const [proposalData, setProposalData] = useState(null);
+  const [projectName, setProjectName] = useState(""); // ← from backend meta
   const [status, setStatus] = useState("idle");
   const [error, setError] = useState("");
   const [stepIndex, setStepIndex] = useState(0);
@@ -68,16 +68,13 @@ export function useProposal() {
   const resetForm = useCallback(() => {
     setForm(INITIAL_FORM);
     setProposalData(null);
+    setProjectName("");
     setStatus("idle");
     setError("");
     setStepIndex(0);
   }, []);
 
   const generate = useCallback(async () => {
-    if (!form.project_name.trim()) {
-      setError("Project name is required.");
-      return;
-    }
     if (!form.description.trim()) {
       setError("Project description is required.");
       return;
@@ -95,11 +92,18 @@ export function useProposal() {
     }, 3200);
 
     try {
-      // Returns full_proposal object from backend
       const fullProposal = await generateProposal(form);
       clearInterval(interval);
       setStepIndex(totalSteps - 1);
       await new Promise((r) => setTimeout(r, 600));
+
+      // ── Extract project name from backend meta ──────────────────────────
+      const nameFromBackend =
+        fullProposal?.meta?.project_name ||
+        fullProposal?.parsed_project_brief?.project_name ||
+        "";
+      setProjectName(nameFromBackend);
+
       setProposalData(fullProposal);
       setStatus("done");
     } catch (e) {
@@ -115,8 +119,9 @@ export function useProposal() {
     addScreenshots,
     removeScreenshot,
     resetForm,
-    proposalData, // full_proposal JSON object
+    proposalData,
     setProposalData,
+    projectName, // ← pass this wherever projectTitle is needed
     status,
     error,
     stepIndex,

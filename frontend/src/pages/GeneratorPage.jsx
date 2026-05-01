@@ -15,6 +15,7 @@ export default function GeneratorPage() {
       navigate("/proposal", {
         state: {
           proposalData: proposal.proposalData, // full_proposal JSON object
+          projectName: proposal.projectName, // from backend meta
           clientName: proposal.form.client_name,
           formData: proposal.form,
           screenshots: proposal.form.screenshots,

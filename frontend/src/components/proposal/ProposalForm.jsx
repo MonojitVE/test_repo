@@ -87,7 +87,7 @@ export default function ProposalForm({
           </div>
         </div>
         <div className="proposal-form__fields">
-          <FormField
+          {/* <FormField
             label="Project Name"
             name="project_name"
             as="input"
@@ -96,7 +96,7 @@ export default function ProposalForm({
             placeholder="e.g. AI enabled Point Of Sale App"
             hint="This will appear as the title on the PDF cover page."
             required
-          />
+          /> */}
           <FormField
             label="Project Description"
             name="description"
@@ -306,8 +306,8 @@ export default function ProposalForm({
           <div>
             <h2 className="proposal-form__section-title">Demo Link</h2>
             <p className="proposal-form__section-desc">
-              Optional. Add a live demo URL — it will appear as a clickable
-              link section in the PDF.
+              Optional. Add a live demo URL — it will appear as a clickable link
+              section in the PDF.
             </p>
           </div>
         </div>
@@ -344,7 +344,7 @@ export default function ProposalForm({
           type="submit"
           size="lg"
           loading={loading}
-          disabled={!form.project_name.trim() || !form.description.trim()}
+          disabled={!form.description.trim()}
         >
           Generate Proposal
         </Button>

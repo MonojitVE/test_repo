@@ -1,7 +1,7 @@
 const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 /**
- * Build a prompt string from form fields (excluding project_name which stays frontend-only).
+ * Build a prompt string from all form fields.
  */
 function buildPrompt(formData) {
   const parts = [];
@@ -24,6 +24,10 @@ function buildPrompt(formData) {
   if (formData.extra_requirements?.trim())
     parts.push(
       `Additional Requirements: ${formData.extra_requirements.trim()}`,
+    );
+  if (formData.demoLabel?.trim() && formData.demoLink?.trim())
+    parts.push(
+      `Demo: ${formData.demoLabel.trim()} — ${formData.demoLink.trim()}`,
     );
 
   return parts.join("\n");
@@ -53,7 +57,6 @@ export async function generateProposal(formData) {
   }
 
   const data = await res.json();
-  // Return the full_proposal object directly
   return data.full_proposal;
 }
 
