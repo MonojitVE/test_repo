@@ -57,7 +57,6 @@ d_technical = {
     "frontend_architecture": (
         "Detail the frontend approach: "
         "framework choice and rationale, state management strategy, routing, component library, "
-        "SSR vs CSR vs SSG decision, code splitting, lazy loading, and accessibility approach."
     ),
     "backend_architecture": (
         "Detail the backend: framework choice, project structure (controllers/services/repos pattern), "
@@ -65,7 +64,7 @@ d_technical = {
     ),
     "database_design": (
         "Explain the database strategy: primary DB choice with rationale, "
-        "key entities and relationships, indexing strategy, migration approach, and read/write patterns."
+        "key entities and relationships, indexing strategy and read/write patterns."
     ),
     "authentication_and_authorisation": (
         "Describe the full auth flow: registration, login, JWT/session management, "
@@ -77,10 +76,10 @@ d_technical = {
     ),
     "caching_strategy": "Describe what gets cached (API responses, sessions, product data), the cache invalidation strategy, and the tool used.",
     "security_hardening": (
-        "Cover: input validation, SQL injection prevention, XSS/CSRF protection, "
+        "Cover: input validation, SQL injection prevention. "
         "rate limiting, CORS policy, secrets management, HTTPS enforcement, dependency scanning."
     ),
-    "scalability_plan": "Explain how the system handles growth: horizontal scaling, stateless services, DB connection pooling, CDN for static assets, load balancing.",
+    
     "error_handling_and_observability": "Describe structured error handling, logging strategy (what gets logged), monitoring setup, alerting thresholds, and incident response.",
     "testing_strategy": (
         "Define the full testing pyramid: "
@@ -90,8 +89,7 @@ d_technical = {
     "deployment_pipeline": (
         "Describe CI/CD pipeline stages: lint → test → build → staging deploy → smoke test → prod deploy. "
         "Tools used, environment strategy (dev/staging/prod), rollback mechanism."
-    ),
-    "post_launch": "Describe the hypercare period, bug triage SLA, patch release cadence, and handover documentation plan."
+    )
 }
 
 # ── SECTION 5: Technology Stack ──────────────────────────────────────────────
@@ -109,21 +107,20 @@ def build_techstack_dict(parsed_brief: dict) -> dict:
             f"Technologies explicitly preferred by user: {tech_prefs}. "
             f"Must-have requirements: {must_haves}. "
             f"Budget bracket: {budget} — choose tools appropriate for this budget. "
-            "For EACH technology provide: (1) name, (2) version, (3) one-sentence rationale "
+            "For EACH technology provide: (1) name, (2) one-sentence rationale "
             "tied to THIS specific project. "
             "If the user specified a technology, use it exactly. Do not substitute."
         ),
-        "frontend": "Framework, UI library, state management, routing, forms, testing library, build tool.",
+        "frontend": "Framework, UI library, state management, routing, forms.",
         "backend": "Language, framework, ORM/query builder, validation library, job queue, API documentation tool.",
-        "database": "Primary DB, secondary DB if needed, migration tool, backup strategy.",
+        "database": "Primary DB, secondary DB if needed.",
         "caching_and_sessions": "Cache layer and session store with justification.",
         "authentication": "Auth library, JWT library, OAuth provider if needed.",
         "payment": "Payment gateway SDK(s) — must match user's must-have requirements.",
         "storage": "File/media storage service and CDN for asset delivery.",
-        "devops_and_infrastructure": "Cloud provider, containerisation, orchestration, CI/CD tool, IaC tool.",
-        "monitoring_and_logging": "APM tool, log aggregator, error tracker, uptime monitor.",
-        "security_tooling": "Dependency scanner, secrets manager, SAST tool if applicable.",
-        "developer_tooling": "Linter, formatter, pre-commit hooks, API client for testing."
+        "devops_and_infrastructure": "Cloud provider, containerisation, orchestration, CI/CD tool.",
+        "security_tooling": "Dependency scanner, secrets manager, SAST tool if applicable. (If required, do not include for all the proposal generations)",
+        "developer_tooling": "Linter, formatter, pre-commit hooks, API client for testing. (If required, do not include for all the proposal generations)"
     }
 
 
