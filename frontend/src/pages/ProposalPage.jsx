@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import PageShell from "../components/layout/PageShell";
 import ProposalToolbar from "../components/proposal/ProposalToolbar";
@@ -17,6 +17,23 @@ const DEFAULT_TEMPLATE = {
   slotImages: {},
 };
 
+const DownloadIcon = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+    <polyline points="7 10 12 15 17 10" />
+    <line x1="12" y1="15" x2="12" y2="3" />
+  </svg>
+);
+
 export default function ProposalPage() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -31,22 +48,38 @@ export default function ProposalPage() {
     demoLabel = "",
   } = location.state || {};
 
-  const [editDraft, setEditDraft]   = useState("");
-  const [editMode, setEditMode]     = useState(false);
+  const [editDraft, setEditDraft] = useState("");
+  const [editMode, setEditMode] = useState(false);
   const [editedData, setEditedData] = useState(null);
   const [pdfLoading, setPdfLoading] = useState(false);
-  const [copied, setCopied]         = useState(false);
-  const [pdfError, setPdfError]     = useState("");
-  const [template, setTemplate]     = useState(DEFAULT_TEMPLATE);
-
-  // ── Ref to the scrollable doc container ──────────────────────────────────
-  const docRef = useRef(null);
+  const [copied, setCopied] = useState(false);
+  const [pdfError, setPdfError] = useState("");
+  const [template, setTemplate] = useState(DEFAULT_TEMPLATE);
+  const [showScrollTop, setShowScrollTop] = useState(false);
 
   useEffect(() => {
     if (!proposalData) navigate("/generate", { replace: true });
   }, [proposalData, navigate]);
 
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }, []);
+
+  useEffect(() => {
+    const onScroll = () => setShowScrollTop(window.scrollY > 400);
+    window.addEventListener("scroll", onScroll);
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   const activeData = editedData ?? proposalData;
+
+  // ── Smooth scroll to anchor without React Router interference ──
+  const scrollToSection = (e, href) => {
+    e.preventDefault();
+    const id = href.replace("#", "");
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   const handleDownloadPdf = useCallback(async () => {
     setPdfLoading(true);
@@ -55,13 +88,15 @@ export default function ProposalPage() {
       const cleanText = parseProposalText(activeData);
       const blob = await generateProposalPdf(cleanText, {
         projectTitle: projectName || "Project Proposal",
-        preparedBy:   "Virtual Employee",
-        clientName:   clientName || "",
-        date:         new Date().toLocaleDateString("en-GB", {
-          day: "numeric", month: "long", year: "numeric",
+        preparedBy: "Virtual Employee",
+        clientName: clientName || "",
+        date: new Date().toLocaleDateString("en-GB", {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
         }),
         screenshots,
-        demoLink:  demoLink.trim(),
+        demoLink: demoLink.trim(),
         demoLabel: demoLabel.trim() || "Project Demo",
         template,
       });
@@ -74,7 +109,15 @@ export default function ProposalPage() {
     } finally {
       setPdfLoading(false);
     }
-  }, [activeData, clientName, formData, screenshots, demoLink, demoLabel, template]);
+  }, [
+    activeData,
+    clientName,
+    projectName,
+    screenshots,
+    demoLink,
+    demoLabel,
+    template,
+  ]);
 
   const handleCopy = useCallback(async () => {
     const cleanText = parseProposalText(activeData);
@@ -95,8 +138,11 @@ export default function ProposalPage() {
   }, [activeData]);
 
   const handleEditToggle = () => {
-    if (!editMode) setEditDraft(parseProposalText(activeData));
-    else setEditDraft("");
+    if (!editMode) {
+      setEditDraft(parseProposalText(activeData));
+    } else {
+      setEditDraft("");
+    }
     setEditMode((e) => !e);
   };
 
@@ -107,35 +153,6 @@ export default function ProposalPage() {
 
   const handleRegenerate = () =>
     navigate("/generate", { state: { prefill: formData } });
-
-  // ── TOC click: find element, scroll the container that actually overflows ──
-  const handleTocClick = useCallback((e, targetId) => {
-    e.preventDefault();
-
-    const el = document.getElementById(targetId);
-    if (!el) return;
-
-    // Walk up to find the nearest scrollable ancestor inside docRef,
-    // otherwise fall back to the docRef container itself, then window.
-    const container = docRef.current;
-
-    if (container) {
-      // Get el's offsetTop relative to the container
-      let offsetTop = 0;
-      let node = el;
-      while (node && node !== container) {
-        offsetTop += node.offsetTop;
-        node = node.offsetParent;
-      }
-      const HEADER_OFFSET = 80; // match scroll-margin-top in CSS
-      container.scrollTo({ top: offsetTop - HEADER_OFFSET, behavior: "smooth" });
-    } else {
-      // Fallback: let the browser handle it
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-
-    window.history.replaceState(null, "", `#${targetId}`);
-  }, []);
 
   if (!proposalData) return null;
 
@@ -152,14 +169,22 @@ export default function ProposalPage() {
   ];
   const tocItems =
     screenshots.length > 0
-      ? [...baseToc.slice(0, -1), "Demo Screenshots", baseToc[baseToc.length - 1]]
+      ? [
+          ...baseToc.slice(0, -1),
+          "Demo Screenshots",
+          baseToc[baseToc.length - 1],
+        ]
       : baseToc;
 
   return (
     <PageShell>
       <div className="proposal-page">
+        {/* ── Breadcrumb ── */}
         <div className="proposal-page__breadcrumb">
-          <button className="proposal-page__back" onClick={() => navigate("/generate")}>
+          <button
+            className="proposal-page__back"
+            onClick={() => navigate("/generate")}
+          >
             ← New Proposal
           </button>
           <span className="proposal-page__breadcrumb-sep">/</span>
@@ -181,22 +206,26 @@ export default function ProposalPage() {
         />
 
         {pdfError && (
-          <div className="proposal-page__error" role="alert">⚠ {pdfError}</div>
+          <div className="proposal-page__error" role="alert">
+            ⚠ {pdfError}
+          </div>
         )}
 
         <div className="proposal-page__body">
-          {/* ── TOC sidebar ── */}
+          {/* ── TOC ── */}
           <aside className="proposal-page__toc">
             <p className="proposal-page__toc-label">Contents</p>
             {tocItems.map((s, i) => {
-              const targetId =
-                s === "Demo Screenshots" ? "section-screenshots" : `section-${i}`;
+              const href =
+                s === "Demo Screenshots"
+                  ? "#section-screenshots"
+                  : `#section-${i}`;
               return (
                 <a
                   key={s}
-                  href={`#${targetId}`}
+                  href={href}
                   className="proposal-page__toc-item"
-                  onClick={(e) => handleTocClick(e, targetId)}
+                  onClick={(e) => scrollToSection(e, href)}
                 >
                   <span className="proposal-page__toc-num">
                     {String(i + 1).padStart(2, "0")}
@@ -209,7 +238,7 @@ export default function ProposalPage() {
               <a
                 href="#section-demo"
                 className="proposal-page__toc-item"
-                onClick={(e) => handleTocClick(e, "section-demo")}
+                onClick={(e) => scrollToSection(e, "#section-demo")}
               >
                 <span className="proposal-page__toc-num">🔗</span>
                 {demoLabel.trim() || "Demo Link"}
@@ -217,8 +246,8 @@ export default function ProposalPage() {
             )}
           </aside>
 
-          {/* ── Doc area — ref so TOC can scroll it ── */}
-          <div className="proposal-page__doc" ref={docRef}>
+          {/* ── Document ── */}
+          <div className="proposal-page__doc">
             {editMode ? (
               <div className="proposal-page__editor-wrap">
                 <div className="proposal-page__editor-bar">
@@ -226,8 +255,20 @@ export default function ProposalPage() {
                     ✏ Edit Mode — changes apply to PDF download
                   </span>
                   <div className="proposal-page__editor-actions">
-                    <Button variant="ghost" size="sm" onClick={handleEditToggle}>Cancel</Button>
-                    <Button variant="primary" size="sm" onClick={handleSaveEdit}>Save Changes</Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleEditToggle}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={handleSaveEdit}
+                    >
+                      Save Changes
+                    </Button>
                   </div>
                 </div>
                 <textarea
@@ -247,6 +288,30 @@ export default function ProposalPage() {
             )}
           </div>
         </div>
+
+        {/* ── Bottom Download Button ── */}
+        <div className="proposal-page__bottom-actions">
+          <Button
+            variant="primary"
+            size="lg"
+            icon={<DownloadIcon />}
+            loading={pdfLoading}
+            onClick={handleDownloadPdf}
+          >
+            Download PDF
+          </Button>
+        </div>
+
+        {/* ── Go To Top Button ── */}
+        {showScrollTop && (
+          <button
+            className="proposal-page__scroll-top"
+            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            aria-label="Back to top"
+          >
+            ↑
+          </button>
+        )}
       </div>
     </PageShell>
   );
