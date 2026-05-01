@@ -96,47 +96,79 @@ d_technical = {
 }
 
 # ── SECTION 5: Technology Stack ──────────────────────────────────────────────
-d_techstack = {
-    "instruction": (
-        "Generate a structured technology stack. For EACH technology listed, provide: "
-        "(1) the tool/library name, (2) the specific version or version range, "
-        "(3) a one-sentence rationale for choosing it for THIS project."
-    ),
-    "frontend": "Framework, UI library, state management, routing, forms, testing library, build tool.",
-    "backend": "Language, framework, ORM/query builder, validation library, job queue, API documentation tool.",
-    "database": "Primary DB, secondary DB if needed, migration tool, backup strategy.",
-    "caching_and_sessions": "Cache layer and session store with justification.",
-    "authentication": "Auth library, JWT library, OAuth provider if needed.",
-    "payment": "Payment gateway SDK(s) — must match user's must-have requirements.",
-    "storage": "File/media storage service and CDN for asset delivery.",
-    "devops_and_infrastructure": "Cloud provider, containerisation, orchestration, CI/CD tool, IaC tool.",
-    "monitoring_and_logging": "APM tool, log aggregator, error tracker, uptime monitor.",
-    "security_tooling": "Dependency scanner, secrets manager, SAST tool if applicable.",
-    "developer_tooling": "Linter, formatter, pre-commit hooks, API client for testing."
-}
+def build_techstack_dict(parsed_brief: dict) -> dict:
+    tech_prefs   = ", ".join(parsed_brief.get("tech_preferences", [])) or "not specified"
+    must_haves   = ", ".join(parsed_brief.get("must_have_requirements", [])) or "none"
+    budget       = parsed_brief.get("budget_bracket", "not specified")
+    project_type = parsed_brief.get("project_type", "not specified")
+
+    return {
+        "instruction": (
+            "Generate a technology stack STRICTLY grounded in the project brief. "
+            "Do NOT add technologies not implied by the brief. "
+            f"Project type: {project_type}. "
+            f"Technologies explicitly preferred by user: {tech_prefs}. "
+            f"Must-have requirements: {must_haves}. "
+            f"Budget bracket: {budget} — choose tools appropriate for this budget. "
+            "For EACH technology provide: (1) name, (2) version, (3) one-sentence rationale "
+            "tied to THIS specific project. "
+            "If the user specified a technology, use it exactly. Do not substitute."
+        ),
+        "frontend": "Framework, UI library, state management, routing, forms, testing library, build tool.",
+        "backend": "Language, framework, ORM/query builder, validation library, job queue, API documentation tool.",
+        "database": "Primary DB, secondary DB if needed, migration tool, backup strategy.",
+        "caching_and_sessions": "Cache layer and session store with justification.",
+        "authentication": "Auth library, JWT library, OAuth provider if needed.",
+        "payment": "Payment gateway SDK(s) — must match user's must-have requirements.",
+        "storage": "File/media storage service and CDN for asset delivery.",
+        "devops_and_infrastructure": "Cloud provider, containerisation, orchestration, CI/CD tool, IaC tool.",
+        "monitoring_and_logging": "APM tool, log aggregator, error tracker, uptime monitor.",
+        "security_tooling": "Dependency scanner, secrets manager, SAST tool if applicable.",
+        "developer_tooling": "Linter, formatter, pre-commit hooks, API client for testing."
+    }
+
 
 # ── SECTION 6: Time and Budget ────────────────────────────────────────────────
-d_budget = {
-    "instruction": (
-        "Generate a detailed Time and Budget Estimate. "
-        "Be realistic based on the scope described in previous sections. "
-        "Use the project's tech preferences and must-have requirements to calibrate."
-    ),
-    "phases": (
-        "Break the project into 4-6 phases. For each phase provide: "
-        "phase name, description of work, duration in weeks, and team members involved."
-    ),
-    "team_composition": "List each role needed, count, and their phase involvement (e.g., 1x Tech Lead, 2x Backend Dev, 1x Frontend Dev, 1x QA).",
-    "total_timeline": "Total calendar duration with explanation of any parallelism or dependencies between phases.",
-    "budget_estimate": (
-        "Provide a realistic budget range (low-end and high-end) with breakdown by: "
-        "development effort, infrastructure/hosting (monthly), third-party API costs, QA, and contingency."
-    ),
-    "risk_factors": "List 3-4 factors that could extend timeline or increase budget, and how to mitigate them.",
-    "payment_milestones": "Suggest a milestone-based payment schedule tied to deliverable phases."
-}
+def build_budget_dict(parsed_brief: dict) -> dict:
+    timeline     = parsed_brief.get("estimated_timeline", "not specified")
+    budget       = parsed_brief.get("budget_bracket", "not specified")
+    must_haves   = ", ".join(parsed_brief.get("must_have_requirements", [])) or "none"
+    constraints  = ", ".join(parsed_brief.get("constraints", [])) or "none"
 
-# ── SECTION 7: Key Deliverables (no dict — synthesised from all prior) ────────
+    return {
+        "instruction": (
+            "Generate a Time and Budget Estimate STRICTLY within the bounds below. "
+            "Do NOT invent numbers outside these constraints. "
+            f"User's stated timeline: {timeline} — your total must align with this. "
+            f"Budget bracket: {budget} — all cost estimates must fit within this range. "
+            f"Must-have requirements: {must_haves}. "
+            f"Known constraints: {constraints}. "
+            "Be conservative. Do not pad phases. Do not add roles the user did not imply."
+        ),
+        "phases": (
+            "Break the project into 4-6 phases. For each phase provide: "
+            "phase name, description of work, duration in weeks, and team members involved. "
+            "Total duration MUST align with the user's stated timeline."
+        ),
+        "team_composition": (
+            "List each role needed, count, and their phase involvement. "
+            "Only include roles justified by the project scope and budget bracket."
+        ),
+        "total_timeline": (
+            "Total calendar duration — must match the user's stated timeline. "
+            "Explain any phase parallelism or dependencies."
+        ),
+        "budget_estimate": (
+            f"Budget MUST fit within the '{budget}' bracket. "
+            "Provide low-end and high-end range with breakdown by: "
+            "development effort, infrastructure/hosting (monthly), third-party API costs, QA, and contingency."
+        ),
+        "risk_factors": "List 3-4 realistic risks that could extend timeline or increase budget, with mitigations.",
+        "payment_milestones": "Suggest a milestone-based payment schedule tied to deliverable phases."
+    }
+
+
+# ── SECTION 7: Key Deliverables ───────────────────────────────────────────────
 DELIVERABLES_SYSTEM = (
     "You are a senior delivery manager and technical lead. "
     "Respond ONLY with a valid JSON object. No markdown. No extra text."
@@ -156,27 +188,23 @@ Return a JSON object with exactly these keys:
   "executive_summary_of_deliverables": "2-3 sentence summary of what will be delivered at the end of this engagement.",
 
   "software_deliverables": [
-    // List every concrete software artifact: apps, APIs, admin panels, mobile apps, docs
-    // Format each as: {{ "item": "name", "description": "what it is and does", "acceptance_criteria": "how we know it's done" }}
+    {{ "item": "name", "description": "what it is and does", "acceptance_criteria": "how we know it's done" }}
   ],
 
   "technical_deliverables": [
-    // Infrastructure, CI/CD pipelines, DB schemas, API documentation, architecture diagrams
-    // Format each as: {{ "item": "name", "description": "details", "format": "how it is delivered" }}
+    {{ "item": "name", "description": "details", "format": "how it is delivered" }}
   ],
 
   "documentation_deliverables": [
-    // Technical docs, API docs, deployment runbooks, user manuals, admin guides
-    // Format each as: {{ "item": "name", "audience": "who reads it", "format": "Markdown / PDF / Confluence" }}
+    {{ "item": "name", "audience": "who reads it", "format": "Markdown / PDF / Confluence" }}
   ],
 
   "phase_milestones": [
-    // One entry per phase from the budget section
-    // Format: {{ "phase": "name", "milestone": "what is delivered", "sign_off_criteria": "how client approves" }}
+    {{ "phase": "name", "milestone": "what is delivered", "sign_off_criteria": "how client approves" }}
   ],
 
   "out_of_scope_callout": [
-    // 3-5 items explicitly NOT delivered in this engagement (prevents misalignment)
+    "3-5 items explicitly NOT delivered in this engagement"
   ],
 
   "handover_plan": "Describe the handover process: code repo access, deployment credentials, knowledge transfer sessions, and warranty period."
@@ -190,12 +218,10 @@ def build_deliverables_user_msg(accumulated_context: str) -> str:
     return DELIVERABLES_USER_TEMPLATE.format(accumulated_context=accumulated_context)
 
 
-# Ordered list of (section_name, section_key, section_dict) for the pipeline
-SECTION_PIPELINE = [
-    ("PURPOSE OF THE DOCUMENT",    "purpose",     d_purpose),
-    ("OBJECTIVES",                 "objectives",  d_objectives),
-    ("FEATURES AND FUNCTIONALITY", "features",    d_features),
-    ("TECHNICAL APPROACH",         "technical",   d_technical),
-    ("TECHNOLOGY STACK",           "techstack",   d_techstack),
-    ("TIME AND BUDGET ESTIMATE",   "budget",      d_budget),
+# ── Static section pipeline (techstack and budget are built dynamically) ──────
+STATIC_SECTION_PIPELINE = [
+    ("PURPOSE OF THE DOCUMENT",    "purpose",    d_purpose),
+    ("OBJECTIVES",                 "objectives", d_objectives),
+    ("FEATURES AND FUNCTIONALITY", "features",   d_features),
+    ("TECHNICAL APPROACH",         "technical",  d_technical),
 ]

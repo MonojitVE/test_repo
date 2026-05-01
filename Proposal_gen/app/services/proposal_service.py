@@ -6,7 +6,7 @@ import json
 from app.services.parser_service import parse_user_prompt
 from app.services.section_service import generate_section_json
 from app.services.deliverables_service import generate_deliverables
-from app.prompts.sections import SECTION_PIPELINE
+from app.prompts.sections import STATIC_SECTION_PIPELINE, build_techstack_dict, build_budget_dict
 from app.core.config import COMPANY_OVERVIEW
 
 
@@ -19,12 +19,18 @@ def run_full_pipeline(user_raw_prompt: str) -> dict:
     parsed_project = parse_user_prompt(user_raw_prompt)
     project_details = json.dumps(parsed_project, indent=2)
 
+    # ── Build full pipeline with context-injected dicts ──────────────────────
+    section_pipeline = STATIC_SECTION_PIPELINE + [
+        ("TECHNOLOGY STACK",         "techstack", build_techstack_dict(parsed_project)),
+        ("TIME AND BUDGET ESTIMATE", "budget",    build_budget_dict(parsed_project)),
+    ]
+
     # Steps 1-6 — generate each section sequentially with accumulated context
     sections_json: dict[str, dict] = {}
     sections_text: dict[str, str] = {}
     accumulated_context = ""
 
-    for section_name, section_key, section_dict in SECTION_PIPELINE:
+    for section_name, section_key, section_dict in section_pipeline:
         result = generate_section_json(
             section_name=section_name,
             section_dict=section_dict,
@@ -48,15 +54,15 @@ def run_full_pipeline(user_raw_prompt: str) -> dict:
             "project_type": parsed_project.get("project_type", ""),
             "domain":       parsed_project.get("domain", ""),
         },
-        "company_overview":              COMPANY_OVERVIEW,
-        "parsed_project_brief":          parsed_project,
-        "purpose_of_document":           sections_json.get("purpose",      {}),
-        "objectives":                    sections_json.get("objectives",   {}),
-        "features_and_functionality":    sections_json.get("features",     {}),
-        "technical_approach":            sections_json.get("technical",    {}),
-        "technology_stack":              sections_json.get("techstack",    {}),
-        "time_and_budget_estimate":      sections_json.get("budget",       {}),
-        "key_deliverables":              sections_json.get("deliverables", {}),
+        "company_overview":           COMPANY_OVERVIEW,
+        "parsed_project_brief":       parsed_project,
+        "purpose_of_document":        sections_json.get("purpose",      {}),
+        "objectives":                 sections_json.get("objectives",   {}),
+        "features_and_functionality": sections_json.get("features",     {}),
+        "technical_approach":         sections_json.get("technical",    {}),
+        "technology_stack":           sections_json.get("techstack",    {}),
+        "time_and_budget_estimate":   sections_json.get("budget",       {}),
+        "key_deliverables":           sections_json.get("deliverables", {}),
     }
 
     return {
