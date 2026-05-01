@@ -110,8 +110,9 @@ def build_techstack_dict(parsed_brief: dict) -> dict:
             f"Technologies explicitly preferred by user: {tech_prefs}. "
             f"Must-have requirements: {must_haves}. "
             f"Budget bracket: {budget} — choose tools appropriate for this budget. "
-            "For EACH technology provide: (1) name, (2) version, (3) one-sentence rationale "
+            "For EACH technology provide: (1) name ONLY — no version numbers, (2) one-sentence rationale "
             "tied to THIS specific project. "
+            "Do NOT include version numbers anywhere in the output. "
             "If the user specified a technology, use it exactly. Do not substitute."
         ),
         "frontend": "Framework, UI library, state management, routing, forms, testing library, build tool.",
@@ -130,41 +131,59 @@ def build_techstack_dict(parsed_brief: dict) -> dict:
 
 # ── SECTION 6: Time and Budget ────────────────────────────────────────────────
 def build_budget_dict(parsed_brief: dict) -> dict:
-    timeline     = parsed_brief.get("estimated_timeline", "not specified")
-    budget       = parsed_brief.get("budget_bracket", "not specified")
-    must_haves   = ", ".join(parsed_brief.get("must_have_requirements", [])) or "none"
-    constraints  = ", ".join(parsed_brief.get("constraints", [])) or "none"
+    project_name    = parsed_brief.get("project_name", "This Project")
+    project_type    = parsed_brief.get("project_type", "Software Project")
+    timeline        = parsed_brief.get("estimated_timeline", None)
+    budget          = parsed_brief.get("budget_bracket", None)
+    constraints     = parsed_brief.get("constraints", [])
+    tech_prefs      = parsed_brief.get("tech_preferences", [])
+    core_reqs       = parsed_brief.get("core_requirements", [])
+    must_haves      = parsed_brief.get("must_have_requirements", [])
+
+    # Build fallback-safe values
+    estimated_weeks = timeline if timeline else "not finalized yet"
+    budget_range    = budget if budget else "not finalized yet"
+    technologies    = ", ".join(tech_prefs) if tech_prefs else "not finalized yet"
+    features_summary = (
+        ", ".join((core_reqs + must_haves)[:5])
+        if (core_reqs or must_haves)
+        else "as described in the document"
+    )
+    resources       = (
+        ", ".join(constraints) if constraints else "not finalized yet"
+    )
 
     return {
         "instruction": (
-            "Generate a Time and Budget Estimate STRICTLY within the bounds below. "
-            "Do NOT invent numbers outside these constraints. "
-            f"User's stated timeline: {timeline} — your total must align with this. "
-            f"Budget bracket: {budget} — all cost estimates must fit within this range. "
-            f"Must-have requirements: {must_haves}. "
-            f"Known constraints: {constraints}. "
-            "Be conservative. Do not pad phases. Do not add roles the user did not imply."
+            "Generate a Time and Budget Estimate section following EXACTLY this template format. "
+            "Do NOT add extra sections, phases breakdown, or cost tables. "
+            "Keep it concise, formal, and client-ready. "
+            "Fill all placeholders from the values provided below. "
+            "If a value is 'not finalized yet', use that exact phrase in the output.\n\n"
+
+            "TEMPLATE:\n"
+            "TIME AND BUDGET ESTIMATE\n\n"
+            f"The {project_name} ({project_type}) project will be completed in [num_phases] phase(s) "
+            f"and the ballpark estimate will be {estimated_weeks} ({budget_range}).\n\n"
+            f"TOTAL PROJECT TIME: Ballpark estimation will be {estimated_weeks} "
+            f"({budget_range}) using {technologies}, which may vary depending upon the "
+            "actual complexity and requirements. This duration is based on the functionality "
+            f"and scope mentioned in the document ({features_summary}).\n\n"
+            f"NO. OF RESOURCES REQUIRED: {resources}\n\n"
+
+            "RULES:\n"
+            "- Keep structure exactly as template above\n"
+            "- Do not add phase breakdowns, cost tables, or risk factors\n"
+            "- Do not invent numbers not provided by the user\n"
+            "- If timeline or budget is 'not finalized yet', say so clearly\n"
+            "- Keep tone formal and client-ready\n"
+            "- Infer [num_phases] from the project scope (typically 4-6 for most projects)"
         ),
-        "phases": (
-            "Break the project into 4-6 phases. For each phase provide: "
-            "phase name, description of work, duration in weeks, and team members involved. "
-            "Total duration MUST align with the user's stated timeline."
-        ),
-        "team_composition": (
-            "List each role needed, count, and their phase involvement. "
-            "Only include roles justified by the project scope and budget bracket."
-        ),
-        "total_timeline": (
-            "Total calendar duration — must match the user's stated timeline. "
-            "Explain any phase parallelism or dependencies."
-        ),
-        "budget_estimate": (
-            f"Budget MUST fit within the '{budget}' bracket. "
-            "Provide low-end and high-end range with breakdown by: "
-            "development effort, infrastructure/hosting (monthly), third-party API costs, QA, and contingency."
-        ),
-        "risk_factors": "List 3-4 realistic risks that could extend timeline or increase budget, with mitigations.",
-        "payment_milestones": "Suggest a milestone-based payment schedule tied to deliverable phases."
+        "total_timeline": estimated_weeks,
+        "budget_range":   budget_range,
+        "technologies":   technologies,
+        "features_summary": features_summary,
+        "resources_required": resources,
     }
 
 
