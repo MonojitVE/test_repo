@@ -184,4 +184,13 @@
   .proposal-page__editor {
     padding: 20px;
   }
+  .proposal-page__doc {
+  overflow-y: auto;
+  /* Set a max-height so this div actually scrolls instead of the page.
+     Adjust the value to fit your layout — e.g. if your header + toolbar
+     is ~120px tall, use calc(100vh - 120px). */
+  max-height: calc(100vh - 120px);
+  scroll-behavior: smooth;
+}
+ 
 }

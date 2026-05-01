@@ -28,14 +28,13 @@ function SectionItem({ item }) {
  * - screenshots: array of { dataUrl, name }
  */
 export default function ProposalViewer({ data, text, screenshots = [] }) {
-  // Accept either `data` (new) or `text` (legacy)
   const input = data ?? text ?? "";
   const { sections } = useMemo(() => parseProposal(input), [input]);
 
   if (!sections.length && !screenshots.length) return null;
 
   const hasScreenshots = screenshots.length > 0;
-  const injectBeforeIndex = sections.length - 2; // before second-to-last
+  const injectBeforeIndex = sections.length - 2;
   const screenshotNum = hasScreenshots
     ? (sections[injectBeforeIndex]?.num ?? String(injectBeforeIndex + 1))
     : null;
@@ -53,7 +52,7 @@ export default function ProposalViewer({ data, text, screenshots = [] }) {
           <div key={si}>
             {/* Inject screenshots before second-to-last section */}
             {si === injectBeforeIndex && hasScreenshots && (
-              <div className="pv__section" id="section-screenshots">
+              <div className="pv__section pv__section--anchor" id="section-screenshots">
                 <div className="pv__heading-wrap">
                   <h2 className="pv__heading">
                     <span className="pv__heading-num">{screenshotNum}</span>
@@ -79,7 +78,7 @@ export default function ProposalViewer({ data, text, screenshots = [] }) {
             )}
 
             {/* Regular section */}
-            <div className="pv__section" id={`section-${si}`}>
+            <div className="pv__section pv__section--anchor" id={`section-${si}`}>
               {section.title && (
                 <div className="pv__heading-wrap">
                   <h2 className="pv__heading">
@@ -100,6 +99,9 @@ export default function ProposalViewer({ data, text, screenshots = [] }) {
           </div>
         );
       })}
+
+      {/* ── Demo link anchor target — always rendered at the bottom ── */}
+      <div id="section-demo" className="pv__section--anchor" />
     </div>
   );
 }

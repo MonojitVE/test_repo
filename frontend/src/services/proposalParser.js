@@ -8,22 +8,15 @@
 
 // ── Section order matching the backend response keys ─────────────────────────
 const SECTION_MAP = [
-  { key: "company_overview", num: "1", title: "COMPANY OVERVIEW" },
-  { key: "purpose_of_document", num: "2", title: "PURPOSE OF THE DOCUMENT" },
-  { key: "key_deliverables", num: "3", title: "KEY DELIVERABLES" },
-  { key: "objectives", num: "4", title: "OBJECTIVES" },
-  {
-    key: "features_and_functionality",
-    num: "5",
-    title: "FEATURES AND FUNCTIONALITY",
-  },
-  { key: "technical_approach", num: "6", title: "TECHNICAL APPROACH" },
-  { key: "technology_stack", num: "7", title: "TECHNOLOGY STACK" },
-  {
-    key: "time_and_budget_estimate",
-    num: "8",
-    title: "TIME AND BUDGET ESTIMATE",
-  },
+  { key: "company_overview",          num: "1",  title: "COMPANY OVERVIEW" },
+  { key: "purpose_of_document",       num: "2",  title: "PURPOSE OF THE DOCUMENT" },
+  { key: "key_deliverables",          num: "3",  title: "KEY DELIVERABLES" },
+  { key: "objectives",                num: "4",  title: "OBJECTIVES" },
+  { key: "features_and_functionality",num: "5",  title: "FEATURES AND FUNCTIONALITY" },
+  { key: "technical_approach",        num: "6",  title: "TECHNICAL APPROACH" },
+  { key: "technology_stack",          num: "7",  title: "TECHNOLOGY STACK" },
+  { key: "future_scope",              num: "8",  title: "FUTURE SCOPE" }, // ← was missing
+  { key: "time_and_budget_estimate",  num: "9",  title: "TIME AND BUDGET ESTIMATE" },
 ];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -64,7 +57,6 @@ function valueToItems(value, depth = 0) {
   } else if (typeof value === "object" && value !== null) {
     Object.entries(value).forEach(([key, val]) => {
       if (SKIP_LABEL_KEYS.has(key)) {
-        // Render value directly as body, no label
         if (typeof val === "string" && val.trim())
           items.push({ type: "body", text: val.trim() });
         else valueToItems(val, depth).forEach((i) => items.push(i));
@@ -90,7 +82,6 @@ function valueToItems(value, depth = 0) {
           );
         }
       } else if (typeof val === "object" && val !== null) {
-        // Check for sub_features pattern
         if (val.sub_features && Array.isArray(val.sub_features)) {
           items.push({ type: "subsection", text: label });
           val.sub_features.forEach((s) =>
@@ -108,16 +99,12 @@ function valueToItems(value, depth = 0) {
 }
 
 /**
- * Convert a single section's value into items, with special handling
- * for known section structures.
+ * Convert a single section's value into items.
  */
 function sectionToItems(key, value) {
-  // company_overview is always a plain string
   if (key === "company_overview" && typeof value === "string") {
     return [{ type: "body", text: value.trim() }];
   }
-
-  // For all others, use the generic recursive converter
   return valueToItems(value, 0);
 }
 
@@ -128,14 +115,10 @@ function itemsToPlainLines(items) {
   return items
     .map((item) => {
       switch (item.type) {
-        case "subsection":
-          return `\n${item.text}:`;
-        case "bullet":
-          return `- ${item.text}`;
-        case "body":
-          return item.text;
-        default:
-          return "";
+        case "subsection": return `\n${item.text}:`;
+        case "bullet":     return `- ${item.text}`;
+        case "body":       return item.text;
+        default:           return "";
       }
     })
     .filter(Boolean);
@@ -156,7 +139,7 @@ export function parseProposal(input) {
     return parseLegacyText(input);
   }
 
-  // ── Handle full_proposal JSON object ─────────────────────────────────────
+  // ── Handle full_proposal JSON object ──────────────────────────────────────
   const sections = [];
   const plainLines = [];
 
@@ -176,6 +159,7 @@ export function parseProposal(input) {
     .join("\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
+
   return { sections, plainText };
 }
 
@@ -213,17 +197,10 @@ function parseLegacyText(rawText) {
 
   rawText.split("\n").forEach((raw) => {
     const t = raw.trim();
-    if (!t) {
-      addItem({ type: "spacer" });
-      return;
-    }
+    if (!t) { addItem({ type: "spacer" }); return; }
 
     const h1 = t.match(H1_RE);
-    if (h1) {
-      ensureSection(h1[1], h1[2]);
-      plainLines.push(`\n${t}`);
-      return;
-    }
+    if (h1) { ensureSection(h1[1], h1[2]); plainLines.push(`\n${t}`); return; }
 
     if (/^[-•*]\s+/.test(t)) {
       const text = t.replace(/^[-•*]\s+/, "");
@@ -248,9 +225,6 @@ function parseLegacyText(rawText) {
   );
   return {
     sections: filtered,
-    plainText: plainLines
-      .join("\n")
-      .replace(/\n{3,}/g, "\n\n")
-      .trim(),
+    plainText: plainLines.join("\n").replace(/\n{3,}/g, "\n\n").trim(),
   };
 }

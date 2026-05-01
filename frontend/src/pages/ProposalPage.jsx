@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import PageShell from "../components/layout/PageShell";
 import ProposalToolbar from "../components/proposal/ProposalToolbar";
@@ -22,8 +22,8 @@ export default function ProposalPage() {
   const navigate = useNavigate();
 
   const {
-    proposalData, // full_proposal JSON object from backend
-    projectName = "", // from backend meta, used for PDF title and breadcrumb
+    proposalData,
+    projectName = "",
     clientName,
     formData,
     screenshots = [],
@@ -31,39 +31,37 @@ export default function ProposalPage() {
     demoLabel = "",
   } = location.state || {};
 
-  // Edit mode works on plain text derived from proposalData
-  const [editDraft, setEditDraft] = useState("");
-  const [editMode, setEditMode] = useState(false);
-  const [editedData, setEditedData] = useState(null); // overrides proposalData when user saves edits
+  const [editDraft, setEditDraft]   = useState("");
+  const [editMode, setEditMode]     = useState(false);
+  const [editedData, setEditedData] = useState(null);
   const [pdfLoading, setPdfLoading] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const [pdfError, setPdfError] = useState("");
-  const [template, setTemplate] = useState(DEFAULT_TEMPLATE);
+  const [copied, setCopied]         = useState(false);
+  const [pdfError, setPdfError]     = useState("");
+  const [template, setTemplate]     = useState(DEFAULT_TEMPLATE);
+
+  // ── Ref to the scrollable doc container ──────────────────────────────────
+  const docRef = useRef(null);
 
   useEffect(() => {
     if (!proposalData) navigate("/generate", { replace: true });
   }, [proposalData, navigate]);
 
-  // The active data — either edited plain text or original JSON object
   const activeData = editedData ?? proposalData;
 
   const handleDownloadPdf = useCallback(async () => {
     setPdfLoading(true);
     setPdfError("");
     try {
-      // parseProposalText handles both JSON object and plain text string
       const cleanText = parseProposalText(activeData);
       const blob = await generateProposalPdf(cleanText, {
         projectTitle: projectName || "Project Proposal",
-        preparedBy: "Virtual Employee",
-        clientName: clientName || "",
-        date: new Date().toLocaleDateString("en-GB", {
-          day: "numeric",
-          month: "long",
-          year: "numeric",
+        preparedBy:   "Virtual Employee",
+        clientName:   clientName || "",
+        date:         new Date().toLocaleDateString("en-GB", {
+          day: "numeric", month: "long", year: "numeric",
         }),
         screenshots,
-        demoLink: demoLink.trim(),
+        demoLink:  demoLink.trim(),
         demoLabel: demoLabel.trim() || "Project Demo",
         template,
       });
@@ -76,15 +74,7 @@ export default function ProposalPage() {
     } finally {
       setPdfLoading(false);
     }
-  }, [
-    activeData,
-    clientName,
-    formData,
-    screenshots,
-    demoLink,
-    demoLabel,
-    template,
-  ]);
+  }, [activeData, clientName, formData, screenshots, demoLink, demoLabel, template]);
 
   const handleCopy = useCallback(async () => {
     const cleanText = parseProposalText(activeData);
@@ -105,24 +95,47 @@ export default function ProposalPage() {
   }, [activeData]);
 
   const handleEditToggle = () => {
-    if (!editMode) {
-      // Enter edit mode — populate draft with current plain text
-      setEditDraft(parseProposalText(activeData));
-    } else {
-      // Cancel — reset draft
-      setEditDraft("");
-    }
+    if (!editMode) setEditDraft(parseProposalText(activeData));
+    else setEditDraft("");
     setEditMode((e) => !e);
   };
 
   const handleSaveEdit = () => {
-    // Save as plain text string — ProposalViewer handles both
     setEditedData(editDraft);
     setEditMode(false);
   };
 
   const handleRegenerate = () =>
     navigate("/generate", { state: { prefill: formData } });
+
+  // ── TOC click: find element, scroll the container that actually overflows ──
+  const handleTocClick = useCallback((e, targetId) => {
+    e.preventDefault();
+
+    const el = document.getElementById(targetId);
+    if (!el) return;
+
+    // Walk up to find the nearest scrollable ancestor inside docRef,
+    // otherwise fall back to the docRef container itself, then window.
+    const container = docRef.current;
+
+    if (container) {
+      // Get el's offsetTop relative to the container
+      let offsetTop = 0;
+      let node = el;
+      while (node && node !== container) {
+        offsetTop += node.offsetTop;
+        node = node.offsetParent;
+      }
+      const HEADER_OFFSET = 80; // match scroll-margin-top in CSS
+      container.scrollTo({ top: offsetTop - HEADER_OFFSET, behavior: "smooth" });
+    } else {
+      // Fallback: let the browser handle it
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    window.history.replaceState(null, "", `#${targetId}`);
+  }, []);
 
   if (!proposalData) return null;
 
@@ -139,21 +152,14 @@ export default function ProposalPage() {
   ];
   const tocItems =
     screenshots.length > 0
-      ? [
-          ...baseToc.slice(0, -1),
-          "Demo Screenshots",
-          baseToc[baseToc.length - 1],
-        ]
+      ? [...baseToc.slice(0, -1), "Demo Screenshots", baseToc[baseToc.length - 1]]
       : baseToc;
 
   return (
     <PageShell>
       <div className="proposal-page">
         <div className="proposal-page__breadcrumb">
-          <button
-            className="proposal-page__back"
-            onClick={() => navigate("/generate")}
-          >
+          <button className="proposal-page__back" onClick={() => navigate("/generate")}>
             ← New Proposal
           </button>
           <span className="proposal-page__breadcrumb-sep">/</span>
@@ -175,39 +181,44 @@ export default function ProposalPage() {
         />
 
         {pdfError && (
-          <div className="proposal-page__error" role="alert">
-            ⚠ {pdfError}
-          </div>
+          <div className="proposal-page__error" role="alert">⚠ {pdfError}</div>
         )}
 
         <div className="proposal-page__body">
+          {/* ── TOC sidebar ── */}
           <aside className="proposal-page__toc">
             <p className="proposal-page__toc-label">Contents</p>
-            {tocItems.map((s, i) => (
-              <a
-                key={s}
-                href={
-                  s === "Demo Screenshots"
-                    ? "#section-screenshots"
-                    : `#section-${i}`
-                }
-                className="proposal-page__toc-item"
-              >
-                <span className="proposal-page__toc-num">
-                  {String(i + 1).padStart(2, "0")}
-                </span>
-                {s}
-              </a>
-            ))}
+            {tocItems.map((s, i) => {
+              const targetId =
+                s === "Demo Screenshots" ? "section-screenshots" : `section-${i}`;
+              return (
+                <a
+                  key={s}
+                  href={`#${targetId}`}
+                  className="proposal-page__toc-item"
+                  onClick={(e) => handleTocClick(e, targetId)}
+                >
+                  <span className="proposal-page__toc-num">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  {s}
+                </a>
+              );
+            })}
             {demoLink.trim() && (
-              <a href="#section-demo" className="proposal-page__toc-item">
+              <a
+                href="#section-demo"
+                className="proposal-page__toc-item"
+                onClick={(e) => handleTocClick(e, "section-demo")}
+              >
                 <span className="proposal-page__toc-num">🔗</span>
                 {demoLabel.trim() || "Demo Link"}
               </a>
             )}
           </aside>
 
-          <div className="proposal-page__doc">
+          {/* ── Doc area — ref so TOC can scroll it ── */}
+          <div className="proposal-page__doc" ref={docRef}>
             {editMode ? (
               <div className="proposal-page__editor-wrap">
                 <div className="proposal-page__editor-bar">
@@ -215,20 +226,8 @@ export default function ProposalPage() {
                     ✏ Edit Mode — changes apply to PDF download
                   </span>
                   <div className="proposal-page__editor-actions">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleEditToggle}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      onClick={handleSaveEdit}
-                    >
-                      Save Changes
-                    </Button>
+                    <Button variant="ghost" size="sm" onClick={handleEditToggle}>Cancel</Button>
+                    <Button variant="primary" size="sm" onClick={handleSaveEdit}>Save Changes</Button>
                   </div>
                 </div>
                 <textarea

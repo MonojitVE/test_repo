@@ -138,3 +138,6 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.pv__section--anchor {
+  scroll-margin-top: 80px;
+}
