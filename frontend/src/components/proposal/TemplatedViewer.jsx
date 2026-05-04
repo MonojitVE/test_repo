@@ -44,11 +44,6 @@ function SlotImages({ slotImages }) {
           <img src={slotImages.bottomLeft.dataUrl} alt="" />
         </div>
       )}
-      {slotImages.fullBg?.dataUrl && (
-        <div className="tv__slot tv__slot--fullbg">
-          <img src={slotImages.fullBg.dataUrl} alt="" />
-        </div>
-      )}
       {slotImages.rightSidebar?.dataUrl && (
         <div className="tv__slot tv__slot--rightsidebar">
           <img src={slotImages.rightSidebar.dataUrl} alt="" />
@@ -65,19 +60,30 @@ function SlotImages({ slotImages }) {
 
 export default function TemplatedViewer({ data, text, screenshots, template }) {
   const t = template || { id: "default" };
+
   const wrapperStyle = {};
+
   if (t.id === "rich" && t.bgColor && t.bgColor !== "#ffffff") {
     wrapperStyle.backgroundColor = t.bgColor;
   }
 
+  // Pass watermark URL as CSS variable so ::after pseudo can use it
+  if (t.id === "rich" && t.slotImages?.fullBg?.dataUrl) {
+    wrapperStyle["--watermark-url"] = `url(${t.slotImages.fullBg.dataUrl})`;
+  }
+
+  const hasWatermark = t.id === "rich" && !!t.slotImages?.fullBg?.dataUrl;
+
   return (
-    <div className={`tv tv--${t.id}`} style={wrapperStyle}>
+    <div
+      className={`tv tv--${t.id}${hasWatermark ? " tv--watermark" : ""}`}
+      style={wrapperStyle}
+    >
       {(t.id === "border" || t.id === "rich") && t.borderStyle && (
         <BorderOverlay style={t.borderStyle} color={t.borderColor} />
       )}
       {t.id === "rich" && <SlotImages slotImages={t.slotImages} />}
       <div className="tv__content">
-        {/* Pass data (new JSON) or text (legacy) to ProposalViewer */}
         <ProposalViewer data={data} text={text} screenshots={screenshots} />
       </div>
     </div>

@@ -52,7 +52,10 @@ export default function ProposalViewer({ data, text, screenshots = [] }) {
           <div key={si}>
             {/* Inject screenshots before second-to-last section */}
             {si === injectBeforeIndex && hasScreenshots && (
-              <div className="pv__section pv__section--anchor" id="section-screenshots">
+              <div
+                className="pv__section pv__section--anchor"
+                id="section-screenshots"
+              >
                 <div className="pv__heading-wrap">
                   <h2 className="pv__heading">
                     <span className="pv__heading-num">{screenshotNum}</span>
@@ -78,7 +81,10 @@ export default function ProposalViewer({ data, text, screenshots = [] }) {
             )}
 
             {/* Regular section */}
-            <div className="pv__section pv__section--anchor" id={`section-${si}`}>
+            <div
+              className="pv__section pv__section--anchor"
+              id={`section-${si}`}
+            >
               {section.title && (
                 <div className="pv__heading-wrap">
                   <h2 className="pv__heading">

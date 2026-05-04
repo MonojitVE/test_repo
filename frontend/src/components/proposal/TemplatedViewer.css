@@ -7,7 +7,7 @@
   padding: 48px 56px;
   box-shadow: var(--shadow);
   animation: doc-appear 0.4s ease;
-  overflow: hidden;
+  /* overflow: hidden removed — allows watermark ::after to stretch full height */
 }
 
 @keyframes doc-appear {
@@ -21,6 +21,27 @@
   }
 }
 
+/* ── Watermark pseudo-element — stretches to FULL content height ── */
+.tv--watermark::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  background-image: var(--watermark-url);
+  background-size: 40%;
+  background-repeat: repeat-y;
+  background-position: center top;
+  opacity: 0.06;
+  filter: grayscale(40%);
+  pointer-events: none;
+  z-index: 0;
+  border-radius: var(--radius-lg);
+}
+
 /* ── Content sits above all overlays ── */
 .tv__content {
   position: relative;
@@ -31,7 +52,6 @@
    BORDER OVERLAYS
 ════════════════════════════════════════ */
 
-/* Simple border */
 .tv__border--simple {
   position: absolute;
   inset: 12px;
@@ -41,7 +61,6 @@
   z-index: 1;
 }
 
-/* Double border */
 .tv__border--double {
   position: absolute;
   inset: 10px;
@@ -59,7 +78,6 @@
   opacity: 0.6;
 }
 
-/* Corner brackets */
 .tv__border--corner {
   position: absolute;
   inset: 0;
@@ -98,7 +116,6 @@
   border-radius: 0 0 0 2px;
 }
 
-/* Accent bar */
 .tv__border--accent {
   position: absolute;
   inset: 0;
@@ -163,18 +180,6 @@
   opacity: 0.85;
 }
 
-/* Full background */
-.tv__slot--fullbg {
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  opacity: 0.08;
-  z-index: 0;
-}
-.tv__slot--fullbg img {
-  object-fit: cover;
-}
-
 /* Right sidebar strip */
 .tv__slot--rightsidebar {
   top: 0;
@@ -194,17 +199,12 @@
   opacity: 0.2;
 }
 
-/* ── Adjust content padding for slots ── */
+/* ── Content padding adjustments ── */
 .tv--rich .tv__content {
-  /* Extra left padding when accent border is used */
 }
-
-/* When right sidebar is active, give content breathing room */
 .tv__slot--rightsidebar ~ .tv__content {
   padding-right: 70px;
 }
-
-/* When header banner is active */
 .tv__slot--headerbanner ~ .tv__content {
   padding-top: 16px;
 }
@@ -226,5 +226,4 @@
   .tv__slot--headerbanner {
     height: 36px;
   }
-  
 }
